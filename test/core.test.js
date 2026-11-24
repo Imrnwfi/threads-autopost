@@ -36,6 +36,16 @@ test('guessCategory: kewangan / bantuan / e-wallet sahaja', () => {
   assert.equal(trends.guessCategory('BUDI95 harga RON95 baharu'), 'subsidi');
 });
 
+test('guessCategory: singkatan ikut huruf besar & sumber umum perlu 2 isyarat', () => {
+  assert.equal(trends.guessCategory('Sara Tendulkar to marry Rajveer Deol?'), null);
+  assert.equal(trends.guessCategory('Molly-Mae Hague raising her children'), null);
+  assert.equal(trends.guessCategory('Kedai runcit di pedalaman layak sertai SARA'), 'tunai');
+  assert.equal(trends.guessCategory('Duit MAE boleh guna untuk bayar tol'), 'tipsewallet');
+  assert.equal(trends.guessCategory('MARA arah tindakan segera isu makanan di MRSM'), null);
+  assert.equal(trends.guessCategory('Kerja keras membuahkan hasil', null, 2), null);
+  assert.equal(trends.guessCategory('Bayaran STR fasa 4 bermula, semak status', null, 2), 'tunai');
+});
+
 test('guessCategory buang topik luar skop & guna sempadan perkataan', () => {
   assert.equal(trends.guessCategory('Resepi nasi lemak viral di Kuantan'), null);
   assert.equal(trends.guessCategory('Pasukan bola sepak menang perlawanan'), null);
