@@ -3,11 +3,12 @@ const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const len = (s = '') => [...s].length;
+const threadsIntent = (text) => `https://www.threads.com/intent/post?text=${encodeURIComponent(text)}`;
 
-let STATUS = { categories: {}, max_chars: 500, timezone: 'Asia/Kuala_Lumpur' };
-let selectedCats = new Set();
-let postFilter = 'scheduled';
-let autopilot = null;
+let STATUS = { categories: {}, max_chars: 500, timezone: 'Asia/Kuala_Lumpur', counts: {} };
+const selectedCats = new Set();
+let postFilter = 'draft';
+let autodraft = null;
 
 async function api(path, opts = {}) {
   const res = await fetch(path, {
@@ -27,7 +28,7 @@ function toast(msg, bad = false) {
   t.textContent = msg;
   t.className = `toast${bad ? ' bad' : ''}`;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.add('hidden'), 3500);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), 3000);
 }
 
 async function busy(btn, fn) {
@@ -35,6 +36,17 @@ async function busy(btn, fn) {
   btn.disabled = true;
   btn.innerHTML = '⏳ Tunggu…';
   try { return await fn(); } catch (e) { toast(e.message, true); } finally { btn.disabled = false; btn.innerHTML = old; }
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = Object.assign(document.createElement('textarea'), { value: text });
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+  }
+  toast('📋 Disalin!');
 }
 
 function fmtTime(iso) {
@@ -48,14 +60,6 @@ function ago(iso) {
   if (m < 1440) return `${Math.round(m / 60)} jam lalu`;
   return `${Math.round(m / 1440)} hari lalu`;
 }
-// Nilai lalai untuk <input type="datetime-local"> (+1 jam, waktu peranti)
-function defaultWhen(offsetMin = 60) {
-  const d = new Date(Date.now() + offsetMin * 60000);
-  d.setSeconds(0, 0);
-  const off = d.getTimezoneOffset() * 60000;
-  return new Date(d - off).toISOString().slice(0, 16);
-}
-const toIso = (local) => new Date(local).toISOString();
 
 // ---------- Log masuk ----------
 function showLogin() {
@@ -74,39 +78,124 @@ $('#loginForm').addEventListener('submit', async (e) => {
 $('#logoutBtn').addEventListener('click', async () => { await api('/api/logout', { method: 'POST' }); showLogin(); });
 
 // ---------- Tab ----------
+const TABS = ['trending', 'jana', 'draf', 'auto', 'tetapan'];
 function openTab(name) {
   $$('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
   $$('.tab').forEach((t) => t.classList.toggle('hidden', t.id !== `tab-${name}`));
-  if (name === 'jadual') loadPosts();
-  if (name === 'autopilot') { loadAutopilot(); loadLogs(); }
+  history.replaceState(null, '', `#${name}`);
+  if (name === 'draf') loadPosts();
+  if (name === 'auto') { loadAutoDraft(); loadLogs(); }
   if (name === 'tetapan') renderSettings();
   window.scrollTo({ top: 0 });
 }
 $('#tabs').addEventListener('click', (e) => {
   const b = e.target.closest('button');
-  if (b) { history.replaceState(null, '', `#${b.dataset.tab}`); openTab(b.dataset.tab); }
+  if (b) openTab(b.dataset.tab);
 });
+$('#draftPill').addEventListener('click', () => openTab('draf'));
 
 // ---------- Status ----------
 async function loadStatus() {
   STATUS = await api('/api/status');
-  const pill = $('#connPill');
-  if (STATUS.threads.connected) {
-    pill.className = 'pill ok';
-    pill.textContent = STATUS.threads.username ? `@${STATUS.threads.username}` : 'Disambung';
-  } else {
-    pill.className = 'pill bad';
-    pill.textContent = 'Threads belum disambung';
+  const n = STATUS.counts.draft || 0;
+  $('#draftPill').textContent = `📝 ${n} draf`;
+}
+
+// ---------- Kad post (dijana / draf) ----------
+/**
+ * @param {object} post  { id?, text, category, topic, source_url, status, origin, created_at, posted_at }
+ * Jika post.id tiada = hasil jana yang belum disimpan.
+ */
+function postCard(post) {
+  const card = document.createElement('div');
+  card.className = 'card draft';
+  const saved = !!post.id;
+  const c = STATUS.categories[post.category] || {};
+  card.innerHTML = `
+    ${saved ? `<div class="post-meta">
+      ${post.category ? `<span class="tag">${c.emoji || ''} ${esc(c.label || post.category)}</span>` : ''}
+      ${post.origin === 'auto' ? '<span class="tag">🤖 Auto</span>' : ''}
+      ${post.status === 'posted' ? `<span class="tag ok">✓ Sudah post ${esc(fmtTime(post.posted_at))}</span>` : `<span>${esc(ago(post.created_at))}</span>`}
+    </div>` : ''}
+    ${post.topic && saved ? `<div class="muted small topic">Topik: ${esc(post.topic)}</div>` : ''}
+    <textarea class="draft-text" rows="7"></textarea>
+    <div class="draft-meta"><span class="counter"></span></div>
+    <div class="actions">
+      <button class="btn primary act-threads">🧵 Buka di Threads</button>
+      <button class="btn act-copy">📋 Salin</button>
+      ${!saved ? '<button class="btn act-save">💾 Simpan draf</button>' : ''}
+      ${post.status !== 'posted' ? '<button class="btn act-posted">✓ Sudah post</button>' : '<button class="btn act-unpost">↩︎ Belum post</button>'}
+      ${post.source_url ? `<a class="btn" href="${esc(post.source_url)}" target="_blank" rel="noopener">Sumber ↗</a>` : ''}
+      ${saved ? '<button class="btn danger act-delete" title="Padam">🗑️</button>' : ''}
+    </div>`;
+
+  const ta = $('.draft-text', card);
+  const counter = $('.counter', card);
+  ta.value = post.text;
+  const update = () => {
+    const n = len(ta.value);
+    counter.textContent = `${n}/${STATUS.max_chars}`;
+    counter.classList.toggle('over', n > STATUS.max_chars);
+  };
+  ta.addEventListener('input', update);
+  update();
+
+  // Simpan suntingan automatik untuk draf yang sudah disimpan
+  if (saved) {
+    ta.addEventListener('change', async () => {
+      try { await api(`/api/posts/${post.id}`, { method: 'PUT', body: { text: ta.value } }); toast('Disimpan'); post.text = ta.value; }
+      catch (e) { toast(e.message, true); }
+    });
   }
+
+  const meta = () => ({ text: ta.value, category: post.category, topic: post.topic, source_url: post.source_url });
+
+  $('.act-threads', card).addEventListener('click', () => {
+    if (len(ta.value) > STATUS.max_chars) return toast(`Teks melebihi ${STATUS.max_chars} aksara`, true);
+    window.open(threadsIntent(ta.value), '_blank', 'noopener');
+  });
+  $('.act-copy', card).addEventListener('click', () => copyText(ta.value));
+
+  $('.act-save', card)?.addEventListener('click', (e) => busy(e.currentTarget, async () => {
+    const { post: p } = await api('/api/posts', { method: 'POST', body: meta() });
+    card.replaceWith(postCard(p));
+    toast('💾 Disimpan ke Draf');
+    loadStatus();
+  }));
+
+  $('.act-posted', card)?.addEventListener('click', (e) => busy(e.currentTarget, async () => {
+    if (saved) {
+      await api(`/api/posts/${post.id}`, { method: 'PUT', body: { text: ta.value, status: 'posted' } });
+      card.remove();
+    } else {
+      const { post: p } = await api('/api/posts', { method: 'POST', body: { ...meta(), posted: true } });
+      card.replaceWith(postCard(p));
+    }
+    toast('✓ Ditanda sudah post');
+    loadStatus();
+  }));
+
+  $('.act-unpost', card)?.addEventListener('click', (e) => busy(e.currentTarget, async () => {
+    await api(`/api/posts/${post.id}`, { method: 'PUT', body: { status: 'draft' } });
+    card.remove();
+    loadStatus();
+  }));
+
+  $('.act-delete', card)?.addEventListener('click', (e) => busy(e.currentTarget, async () => {
+    if (!confirm('Padam draf ini?')) return;
+    await api(`/api/posts/${post.id}`, { method: 'DELETE' });
+    card.remove();
+    loadStatus();
+  }));
+
+  return card;
 }
 
 // ---------- Trending ----------
 function renderCatChips() {
-  const box = $('#catChips');
-  box.innerHTML = Object.entries(STATUS.categories).map(([k, c]) =>
+  $('#catChips').innerHTML = Object.entries(STATUS.categories).map(([k, c]) =>
     `<button class="chip ${selectedCats.has(k) ? 'on' : ''}" data-k="${k}">${c.emoji} ${esc(c.label)}</button>`).join('');
-  const sel = $('#gCategory');
-  sel.innerHTML = Object.entries(STATUS.categories).map(([k, c]) => `<option value="${k}">${c.emoji} ${esc(c.label)}</option>`).join('');
+  $('#gCategory').innerHTML = Object.entries(STATUS.categories).map(([k, c]) => `<option value="${k}">${c.emoji} ${esc(c.label)}</option>`).join('');
 }
 $('#catChips').addEventListener('click', (e) => {
   const b = e.target.closest('.chip');
@@ -165,55 +254,10 @@ $('#trendList').addEventListener('click', (e) => {
   $('#gSourceUrl').value = t.link || '';
   $('#gSource').value = t.sources.join(', ');
   openTab('jana');
-  history.replaceState(null, '', '#jana');
   $('#genForm').requestSubmit();
 });
 
 // ---------- Jana ----------
-function draftCard(text, meta = {}) {
-  const node = $('#draftTpl').content.firstElementChild.cloneNode(true);
-  const ta = $('.draft-text', node);
-  const counter = $('.counter', node);
-  const update = () => {
-    const n = len(ta.value);
-    counter.textContent = `${n}/${STATUS.max_chars}`;
-    counter.classList.toggle('over', n > STATUS.max_chars);
-  };
-  ta.value = text;
-  ta.addEventListener('input', update);
-  update();
-  $('.act-when', node).value = defaultWhen();
-
-  const save = (action, extra = {}) => api('/api/posts', {
-    method: 'POST',
-    body: { text: ta.value, category: meta.category, topic: meta.topic, source_url: meta.source_url, action, ...extra },
-  });
-  $('.act-now', node).addEventListener('click', (e) => busy(e.currentTarget, async () => {
-    if (!confirm('Terbitkan post ini ke Threads sekarang?')) return;
-    const { post } = await save('now');
-    toast('✅ Diterbitkan ke Threads!');
-    if (meta.manual) setTimeout(renderManual, 50);
-    node.replaceWith(Object.assign(document.createElement('div'), { className: 'card', innerHTML: `✅ Diterbitkan. ${post.permalink ? `<a href="${esc(post.permalink)}" target="_blank">Lihat di Threads ↗</a>` : ''}` }));
-    loadStatus();
-  }));
-  $('.act-schedule', node).addEventListener('click', (e) => busy(e.currentTarget, async () => {
-    const when = $('.act-when', node).value;
-    if (!when) throw new Error('Pilih tarikh & masa.');
-    if (Date.parse(when) < Date.now()) throw new Error('Masa sudah lepas.');
-    const { post } = await save('schedule', { scheduled_at: toIso(when) });
-    toast(`🗓️ Dijadualkan: ${fmtTime(post.scheduled_at)}`);
-    node.remove();
-    if (meta.manual) renderManual();
-  }));
-  $('.act-draft', node).addEventListener('click', (e) => busy(e.currentTarget, async () => {
-    await save('draft');
-    toast('💾 Disimpan sebagai draf');
-    node.remove();
-    if (meta.manual) renderManual();
-  }));
-  return node;
-}
-
 $('#genForm').addEventListener('submit', (e) => {
   e.preventDefault();
   busy($('#genBtn'), async () => {
@@ -225,16 +269,17 @@ $('#genForm').addEventListener('submit', (e) => {
     box.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
     try {
       const { posts } = await api('/api/generate', { method: 'POST', body });
-      box.innerHTML = '<div class="section-head"><h3>Draf dijana</h3></div>';
-      const meta = { category: body.category, topic: body.topic, source_url: $('#gSourceUrl').value };
-      posts.forEach((p) => box.appendChild(draftCard(p, meta)));
+      box.innerHTML = '<div class="section-head"><h3>Hasil jana</h3></div>';
+      posts.forEach((text) => box.appendChild(postCard({
+        text, category: body.category, topic: body.topic, source_url: $('#gSourceUrl').value, status: 'draft',
+      })));
       box.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) { box.innerHTML = ''; throw err; }
   });
 });
 $('#gTopic').addEventListener('input', () => { $('#gSourceUrl').value = ''; $('#gSource').value = ''; });
 
-// ---------- Jadual / senarai post ----------
+// ---------- Draf ----------
 $('#postFilter').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
@@ -244,155 +289,71 @@ $('#postFilter').addEventListener('click', (e) => {
 });
 $('#refreshPosts').addEventListener('click', () => loadPosts());
 
-const STATUS_TAG = {
-  draft: '<span class="tag">Draf</span>',
-  scheduled: '<span class="tag warn">Berjadual</span>',
-  publishing: '<span class="tag warn">Sedang terbit…</span>',
-  posted: '<span class="tag ok">Diterbitkan</span>',
-  failed: '<span class="tag bad">Gagal</span>',
-};
-
 async function loadPosts() {
   const list = $('#postList');
   list.innerHTML = '<div class="skeleton"></div>';
-  const { posts } = await api(`/api/posts?status=${postFilter}`).catch((e) => { toast(e.message, true); return { posts: [] }; });
-  if (postFilter === 'scheduled') posts.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
-  if (!posts.length) { list.innerHTML = '<div class="empty">Tiada post di sini.</div>'; return; }
-  list.innerHTML = posts.map((p) => {
-    const c = STATUS.categories[p.category] || {};
-    const editable = !['posted', 'publishing'].includes(p.status);
-    return `<div class="card" data-id="${p.id}">
-      <div class="post-text">${esc(p.text)}</div>
-      <div class="post-meta">
-        ${STATUS_TAG[p.status] || ''}
-        ${p.category ? `<span class="tag">${c.emoji || ''} ${esc(c.label || p.category)}</span>` : ''}
-        ${p.origin === 'autopilot' ? '<span class="tag">🤖 Autopilot</span>' : ''}
-        ${p.scheduled_at && p.status === 'scheduled' ? `<span>🗓️ ${fmtTime(p.scheduled_at)}</span>` : ''}
-        ${p.posted_at ? `<span>✅ ${fmtTime(p.posted_at)}</span>` : ''}
-        <span>${len(p.text)}/${STATUS.max_chars}</span>
-      </div>
-      ${p.error ? `<p class="err small">${esc(p.error)}</p>` : ''}
-      <div class="row wrap">
-        ${editable ? `
-          <button class="btn primary sm" data-act="publish">🚀 Post sekarang</button>
-          <button class="btn sm" data-act="edit">✏️ Edit</button>
-          <input type="datetime-local" class="act-when sm" value="${p.scheduled_at ? (() => { const d = new Date(p.scheduled_at); return new Date(d - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); })() : defaultWhen()}" />
-          <button class="btn sm" data-act="schedule">🗓️ ${p.status === 'scheduled' ? 'Tukar masa' : 'Jadualkan'}</button>
-          ${p.status === 'scheduled' ? '<button class="btn sm" data-act="unschedule">↩︎ Jadi draf</button>' : ''}
-        ` : ''}
-        ${p.permalink ? `<a class="btn sm" href="${esc(p.permalink)}" target="_blank" rel="noopener">Lihat di Threads ↗</a>` : ''}
-        ${p.source_url ? `<a class="btn sm" href="${esc(p.source_url)}" target="_blank" rel="noopener">Sumber ↗</a>` : ''}
-        ${p.status !== 'publishing' ? '<button class="btn danger sm" data-act="delete">🗑️</button>' : ''}
-      </div>
-    </div>`;
-  }).join('');
+  try {
+    const { posts } = await api(`/api/posts?status=${postFilter}`);
+    list.innerHTML = posts.length ? '' : `<div class="empty">${postFilter === 'draft' ? 'Tiada draf. Jana post dari tab Trending atau Jana.' : 'Belum ada post ditanda.'}</div>`;
+    posts.forEach((p) => list.appendChild(postCard(p)));
+  } catch (e) {
+    list.innerHTML = `<div class="empty">${esc(e.message)}</div>`;
+  }
 }
 
-$('#postList').addEventListener('click', async (e) => {
-  const b = e.target.closest('[data-act]');
-  if (!b) return;
-  const card = b.closest('[data-id]');
-  const id = card.dataset.id;
-  const act = b.dataset.act;
-  if (act === 'edit') {
-    const textEl = $('.post-text', card);
-    if (textEl.tagName === 'TEXTAREA') {
-      return busy(b, async () => {
-        await api(`/api/posts/${id}`, { method: 'PUT', body: { text: textEl.value } });
-        toast('Disimpan'); loadPosts();
-      });
-    }
-    const ta = document.createElement('textarea');
-    ta.className = 'post-text'; ta.rows = 7; ta.value = textEl.textContent;
-    textEl.replaceWith(ta); ta.focus();
-    b.innerHTML = '💾 Simpan';
-    return;
-  }
-  busy(b, async () => {
-    if (act === 'publish') {
-      if (!confirm('Terbitkan post ini ke Threads sekarang?')) return;
-      const ta = $('textarea.post-text', card);
-      if (ta) await api(`/api/posts/${id}`, { method: 'PUT', body: { text: ta.value } });
-      await api(`/api/posts/${id}/publish`, { method: 'POST' });
-      toast('✅ Diterbitkan!');
-    }
-    if (act === 'schedule') {
-      const when = $('.act-when', card).value;
-      if (!when || Date.parse(when) < Date.now()) throw new Error('Pilih masa akan datang.');
-      const ta = $('textarea.post-text', card);
-      await api(`/api/posts/${id}`, { method: 'PUT', body: { status: 'scheduled', scheduled_at: toIso(when), ...(ta ? { text: ta.value } : {}) } });
-      toast(`🗓️ Dijadualkan: ${fmtTime(toIso(when))}`);
-    }
-    if (act === 'unschedule') await api(`/api/posts/${id}`, { method: 'PUT', body: { status: 'draft' } });
-    if (act === 'delete') {
-      if (!confirm('Padam post ini?')) return;
-      await api(`/api/posts/${id}`, { method: 'DELETE' });
-    }
-    loadPosts();
-    loadStatus();
-  });
-});
-
-// ---------- Autopilot ----------
-function renderAutopilot() {
-  const ap = autopilot;
-  $('#apEnabled').checked = ap.enabled;
-  $$('input[name=apMode]').forEach((r) => { r.checked = r.value === ap.mode; });
-  $('#apTimes').innerHTML = ap.times.length
-    ? ap.times.map((t) => `<span class="chip on" data-t="${t}">${t}<span class="x">✕</span></span>`).join('')
+// ---------- Draf automatik ----------
+function renderAutoDraft() {
+  const ad = autodraft;
+  $('#adEnabled').checked = ad.enabled;
+  $('#adTimes').innerHTML = ad.times.length
+    ? ad.times.map((t) => `<span class="chip on" data-t="${t}">${t}<span class="x">✕</span></span>`).join('')
     : '<span class="muted small">Belum ada masa.</span>';
-  $('#apCats').innerHTML = Object.entries(STATUS.categories).map(([k, c]) =>
-    `<button type="button" class="chip ${ap.categories.includes(k) ? 'on' : ''}" data-k="${k}">${c.emoji} ${esc(c.label)}</button>`).join('');
-  $('#apTone').value = ap.tone;
-  $('#apJitter').value = ap.jitter_minutes;
-  $('#apExtra').value = ap.extra || '';
+  $('#adCats').innerHTML = Object.entries(STATUS.categories).map(([k, c]) =>
+    `<button type="button" class="chip ${ad.categories.includes(k) ? 'on' : ''}" data-k="${k}">${c.emoji} ${esc(c.label)}</button>`).join('');
+  $('#adTone').value = ad.tone;
+  $('#adExtra').value = ad.extra || '';
   $('#tzLabel').textContent = STATUS.timezone;
 }
-async function loadAutopilot() {
-  autopilot = await api('/api/autopilot');
-  renderAutopilot();
+async function loadAutoDraft() {
+  autodraft = await api('/api/autodraft');
+  renderAutoDraft();
 }
-$('#apTimes').addEventListener('click', (e) => {
+$('#adTimes').addEventListener('click', (e) => {
   const c = e.target.closest('[data-t]');
   if (!c) return;
-  autopilot.times = autopilot.times.filter((t) => t !== c.dataset.t);
-  renderAutopilot();
+  autodraft.times = autodraft.times.filter((t) => t !== c.dataset.t);
+  renderAutoDraft();
 });
-$('#apAddTime').addEventListener('click', () => {
-  const v = $('#apTimeInput').value;
+$('#adAddTime').addEventListener('click', () => {
+  const v = $('#adTimeInput').value;
   if (!v) return toast('Pilih masa dulu', true);
-  if (!autopilot.times.includes(v)) autopilot.times = [...autopilot.times, v].sort();
-  renderAutopilot();
+  if (!autodraft.times.includes(v)) autodraft.times = [...autodraft.times, v].sort();
+  renderAutoDraft();
 });
-$('#apCats').addEventListener('click', (e) => {
+$('#adCats').addEventListener('click', (e) => {
   const c = e.target.closest('[data-k]');
   if (!c) return;
   const k = c.dataset.k;
-  autopilot.categories = autopilot.categories.includes(k) ? autopilot.categories.filter((x) => x !== k) : [...autopilot.categories, k];
-  renderAutopilot();
+  autodraft.categories = autodraft.categories.includes(k) ? autodraft.categories.filter((x) => x !== k) : [...autodraft.categories, k];
+  renderAutoDraft();
 });
-$('#apForm').addEventListener('submit', (e) => {
+$('#adForm').addEventListener('submit', (e) => {
   e.preventDefault();
-  busy(e.submitter || $('#apForm button[type=submit]'), async () => {
-    const mode = $('input[name=apMode]:checked')?.value || 'review';
-    if ($('#apEnabled').checked && mode === 'auto' && !STATUS.threads.connected) throw new Error('Sambung akaun Threads dulu di Tetapan.');
-    autopilot = await api('/api/autopilot', {
+  busy($('#adForm button[type=submit]'), async () => {
+    autodraft = await api('/api/autodraft', {
       method: 'PUT',
-      body: {
-        enabled: $('#apEnabled').checked, mode, times: autopilot.times, categories: autopilot.categories,
-        tone: $('#apTone').value, jitter_minutes: Number($('#apJitter').value), extra: $('#apExtra').value,
-      },
+      body: { enabled: $('#adEnabled').checked, times: autodraft.times, categories: autodraft.categories, tone: $('#adTone').value, extra: $('#adExtra').value },
     });
-    renderAutopilot();
-    toast(autopilot.enabled ? '🤖 Autopilot aktif' : 'Disimpan (autopilot tidak aktif)');
+    renderAutoDraft();
+    toast(autodraft.enabled ? '🤖 Draf automatik aktif' : 'Disimpan (tidak aktif)');
     loadLogs();
   });
 });
-$('#apRunNow').addEventListener('click', (e) => busy(e.currentTarget, async () => {
-  const { post } = await api('/api/autopilot/run', { method: 'POST' });
-  toast('📝 Draf baharu dicipta — semak di tab Jadual › Draf');
+$('#adRunNow').addEventListener('click', (e) => busy(e.currentTarget, async () => {
+  await api('/api/autodraft/run', { method: 'POST' });
+  toast('📝 Draf baharu dicipta — lihat tab Draf');
   loadLogs();
-  return post;
+  loadStatus();
 }));
 
 async function loadLogs() {
@@ -406,67 +367,18 @@ $('#refreshLogs').addEventListener('click', loadLogs);
 // ---------- Tetapan ----------
 async function renderSettings() {
   await loadStatus();
-  const t = STATUS.threads;
-  const exp = t.expires_at ? Math.round((Date.parse(t.expires_at) - Date.now()) / 86400000) : null;
-  $('#threadsInfo').innerHTML = t.connected
-    ? `<p>✅ Disambung sebagai <b>@${esc(t.username || t.user_id)}</b>${exp !== null ? `<br><span class="muted small">Token luput dalam ${exp} hari (auto-diperbaharui)</span>` : ''}</p>`
-    : '<p class="muted">Belum disambung.</p>';
-  $('#oauthBox').classList.toggle('hidden', !STATUS.oauth_configured || t.connected);
-  $('#manualTokenBox').open = !STATUS.oauth_configured && !t.connected;
-  $('#threadsActions').innerHTML = t.connected
-    ? `<button class="btn sm" id="btnRefreshTok">↻ Perbaharui token</button><button class="btn sm" id="btnLimit">Kuota post</button><button class="btn danger sm" id="btnDisconnect">Putuskan</button>`
-    : '';
   $('#aiInfo').innerHTML = `<p>${STATUS.ai.configured ? '✅' : '⚠️'} Penyedia: <b>${esc(STATUS.ai.provider)}</b>${STATUS.ai.model ? ` · ${esc(STATUS.ai.model)}` : ''}
     ${STATUS.ai.configured ? '' : '<br><span class="err small">API key AI belum ditetapkan dalam .env</span>'}</p>`;
   const s = await api('/api/settings');
   $('#persona').value = s.persona || '';
-
-  const params = new URLSearchParams(location.hash.split('?')[1] || '');
-  if (params.get('ok')) toast('✅ Akaun Threads disambung!');
-  if (params.get('err')) toast(params.get('err'), true);
-  if (params.toString()) history.replaceState(null, '', '#tetapan');
 }
-$('#threadsActions').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  busy(b, async () => {
-    if (b.id === 'btnRefreshTok') { await api('/api/threads/refresh', { method: 'POST' }); toast('Token diperbaharui'); }
-    if (b.id === 'btnLimit') {
-      const r = await api('/api/threads/limit');
-      const d = r.data?.[0] || {};
-      toast(`Kuota 24 jam: ${d.quota_usage ?? '?'} / ${d.config?.quota_total ?? 250} post`);
-      return;
-    }
-    if (b.id === 'btnDisconnect') {
-      if (!confirm('Putuskan akaun Threads?')) return;
-      await api('/api/threads/disconnect', { method: 'POST' });
-    }
-    renderSettings();
-  });
-});
-$('#tokenForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  busy(e.submitter, async () => {
-    const r = await api('/api/threads/token', { method: 'POST', body: { access_token: $('#tokenInput').value } });
-    $('#tokenInput').value = '';
-    toast(`✅ Disambung sebagai @${r.username}`);
-    renderSettings();
-  });
-});
 $('#personaForm').addEventListener('submit', (e) => {
   e.preventDefault();
-  busy(e.submitter, async () => {
+  busy($('#personaForm button'), async () => {
     await api('/api/settings', { method: 'PUT', body: { persona: $('#persona').value } });
     toast('Persona disimpan');
   });
 });
-
-// ---------- Draf manual ----------
-function renderManual() {
-  const box = $('#manualDraft');
-  box.innerHTML = '';
-  box.appendChild(draftCard('', { category: null, manual: true }));
-}
 
 // ---------- Mula ----------
 async function boot() {
@@ -477,9 +389,8 @@ async function boot() {
   await loadStatus();
   if (!selectedCats.size) Object.keys(STATUS.categories).forEach((k) => selectedCats.add(k));
   renderCatChips();
-  renderManual();
-  const tab = (location.hash.slice(1).split('?')[0]) || 'trending';
-  openTab(['trending', 'jana', 'jadual', 'autopilot', 'tetapan'].includes(tab) ? tab : 'trending');
+  const tab = location.hash.slice(1).split('?')[0];
+  openTab(TABS.includes(tab) ? tab : 'trending');
   loadTrending();
 }
 boot();

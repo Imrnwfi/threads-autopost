@@ -4,7 +4,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { CATEGORIES } from './trends.js';
 import { getSetting } from './db.js';
-import { MAX_CHARS } from './threads.js';
+
+// Had aksara post Threads
+export const MAX_CHARS = 500;
 
 const PROVIDER = () => (process.env.AI_PROVIDER || 'anthropic').toLowerCase();
 

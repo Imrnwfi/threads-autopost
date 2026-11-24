@@ -15,16 +15,12 @@ CREATE TABLE IF NOT EXISTS posts (
   category TEXT,
   topic TEXT,
   source_url TEXT,
-  status TEXT NOT NULL DEFAULT 'draft',   -- draft | scheduled | publishing | posted | failed
-  scheduled_at TEXT,                      -- ISO UTC
+  status TEXT NOT NULL DEFAULT 'draft',   -- draft | posted (ditanda sendiri selepas post di Threads)
   posted_at TEXT,
-  threads_id TEXT,
-  permalink TEXT,
-  error TEXT,
-  origin TEXT DEFAULT 'manual',           -- manual | autopilot
+  origin TEXT DEFAULT 'manual',           -- manual | auto
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
-CREATE INDEX IF NOT EXISTS idx_posts_status_time ON posts(status, scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status, id);
 
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,

@@ -4,10 +4,9 @@ import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { db, getSetting, setSetting, log } from './src/db.js';
-import * as threads from './src/threads.js';
-import { generatePosts } from './src/ai.js';
+import { generatePosts, MAX_CHARS } from './src/ai.js';
 import { getTrending, CATEGORIES } from './src/trends.js';
-import { startScheduler, publishPost, getAutopilot, runAutopilotOnce, DEFAULT_AUTOPILOT, TZ } from './src/scheduler.js';
+import { startScheduler, getAutoDraft, createAutoDraft, DEFAULT_AUTODRAFT, TZ } from './src/scheduler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -40,9 +39,9 @@ function isAuthed(req) {
   if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return false;
   return Number(exp) > Date.now();
 }
-function setCookie(res, name, value, maxAgeSec) {
-  const secure = process.env.NODE_ENV === 'production' || (process.env.THREADS_REDIRECT_URI || '').startsWith('https');
-  res.append('Set-Cookie', `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}${secure ? '; Secure' : ''}`);
+function setCookie(req, res, name, value, maxAgeSec) {
+  const secure = req.secure ? '; Secure' : '';
+  res.append('Set-Cookie', `${name}=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSec}${secure}`);
 }
 function requireAuth(req, res, next) {
   if (isAuthed(req)) return next();
@@ -75,90 +74,29 @@ app.post('/api/login', (req, res) => {
     return res.status(401).json({ error: 'Kata laluan salah.' });
   }
   loginAttempts.delete(ip);
-  setCookie(res, COOKIE, makeSession(), SESSION_DAYS * 86400);
+  setCookie(req, res, COOKIE, makeSession(), SESSION_DAYS * 86400);
   res.json({ ok: true });
 });
 
-app.post('/api/logout', (_req, res) => {
-  setCookie(res, COOKIE, '', 0);
+app.post('/api/logout', (req, res) => {
+  setCookie(req, res, COOKIE, '', 0);
   res.json({ ok: true });
 });
 
 app.get('/api/me', (req, res) => res.json({ authenticated: isAuthed(req) }));
 
-// ---------- Threads OAuth ----------
-app.get('/auth/threads', (req, res) => {
-  if (!isAuthed(req)) return res.redirect('/');
-  if (!process.env.THREADS_APP_ID || !process.env.THREADS_REDIRECT_URI) {
-    return res.status(400).send('THREADS_APP_ID / THREADS_REDIRECT_URI belum ditetapkan dalam .env');
-  }
-  const state = crypto.randomBytes(16).toString('hex');
-  setCookie(res, 'tap_oauth_state', state, 600);
-  res.redirect(threads.authorizeUrl(state));
-});
-
-app.get('/auth/threads/callback', async (req, res) => {
-  if (!isAuthed(req)) return res.redirect('/');
-  const { code, state, error_description } = req.query;
-  if (error_description) return res.redirect(`/#tetapan?err=${encodeURIComponent(error_description)}`);
-  if (!state || state !== readCookie(req, 'tap_oauth_state')) return res.status(400).send('State OAuth tidak sah. Cuba sambung semula.');
-  setCookie(res, 'tap_oauth_state', '', 0);
-  try {
-    const auth = await threads.exchangeCode(String(code).replace(/#_$/, ''));
-    log('info', `Akaun Threads disambung: @${auth.username || auth.user_id}`);
-    res.redirect('/#tetapan?ok=1');
-  } catch (e) {
-    log('error', `OAuth gagal: ${e.message}`);
-    res.redirect(`/#tetapan?err=${encodeURIComponent(e.message)}`);
-  }
-});
-
 // Semua /api selepas ini perlukan log masuk
 app.use('/api', requireAuth);
 
-app.get('/api/status', async (_req, res) => {
-  const auth = threads.getAuth();
+app.get('/api/status', (_req, res) => {
   res.json({
-    threads: auth ? { connected: true, username: auth.username, user_id: auth.user_id, expires_at: auth.expires_at, source: auth.source } : { connected: false },
-    oauth_configured: !!(process.env.THREADS_APP_ID && process.env.THREADS_APP_SECRET && process.env.THREADS_REDIRECT_URI),
     ai: { provider: process.env.AI_PROVIDER || 'anthropic', model: process.env.AI_MODEL || null, configured: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY) },
     timezone: TZ,
     categories: Object.fromEntries(Object.entries(CATEGORIES).map(([k, v]) => [k, { label: v.label, emoji: v.emoji }])),
     counts: Object.fromEntries(db.prepare('SELECT status, COUNT(*) n FROM posts GROUP BY status').all().map((r) => [r.status, r.n])),
-    max_chars: threads.MAX_CHARS,
+    max_chars: MAX_CHARS,
   });
 });
-
-app.post('/api/threads/token', async (req, res) => {
-  const token = String(req.body?.access_token || '').trim();
-  if (!token) return res.status(400).json({ error: 'Token diperlukan.' });
-  const profile = await threads.getProfile(token);
-  let auth = threads.saveAuth({ access_token: token, user_id: profile.id, username: profile.username });
-  // Cuba tukar/refresh supaya dapat token 60 hari & tarikh luput
-  try { auth = await threads.refreshToken(); } catch {
-    if (process.env.THREADS_APP_SECRET) {
-      try {
-        const p = new URLSearchParams({ grant_type: 'th_exchange_token', client_secret: process.env.THREADS_APP_SECRET, access_token: token });
-        const r = await fetch(`https://graph.threads.net/access_token?${p}`).then((x) => x.json());
-        if (r.access_token) auth = threads.saveAuth({ access_token: r.access_token, user_id: profile.id, username: profile.username, expires_in: r.expires_in });
-      } catch { /* abaikan */ }
-    }
-  }
-  log('info', `Token Threads disimpan untuk @${profile.username}`);
-  res.json({ ok: true, username: auth.username, expires_at: auth.expires_at });
-});
-
-app.post('/api/threads/refresh', async (_req, res) => {
-  const auth = await threads.refreshToken();
-  res.json({ ok: true, expires_at: auth.expires_at });
-});
-
-app.post('/api/threads/disconnect', (_req, res) => {
-  threads.clearAuth();
-  res.json({ ok: true });
-});
-
-app.get('/api/threads/limit', async (_req, res) => res.json(await threads.getPublishingLimit()));
 
 // ---------- Trending ----------
 app.get('/api/trending', async (req, res) => {
@@ -173,88 +111,64 @@ app.post('/api/generate', async (req, res) => {
   res.json({ posts });
 });
 
-// ---------- Post ----------
+// ---------- Draf ----------
 const validText = (t) => {
   if (!t || !String(t).trim()) throw Object.assign(new Error('Teks kosong.'), { status: 400 });
-  if ([...String(t)].length > threads.MAX_CHARS) throw Object.assign(new Error(`Teks melebihi ${threads.MAX_CHARS} aksara.`), { status: 400 });
+  if ([...String(t)].length > MAX_CHARS) throw Object.assign(new Error(`Teks melebihi ${MAX_CHARS} aksara.`), { status: 400 });
 };
-const validDate = (d) => {
-  const t = Date.parse(d);
-  if (Number.isNaN(t)) throw Object.assign(new Error('Tarikh/masa tidak sah.'), { status: 400 });
-  return new Date(t).toISOString();
-};
+const getPost = (id) => db.prepare('SELECT * FROM posts WHERE id=?').get(id);
 
 app.get('/api/posts', (req, res) => {
-  const status = String(req.query.status || '');
-  const rows = status
-    ? db.prepare(`SELECT * FROM posts WHERE status IN (${status.split(',').map(() => '?').join(',')}) ORDER BY COALESCE(scheduled_at, posted_at, created_at) DESC LIMIT 200`).all(...status.split(','))
-    : db.prepare('SELECT * FROM posts ORDER BY id DESC LIMIT 200').all();
-  res.json({ posts: rows });
+  const status = req.query.status === 'posted' ? 'posted' : 'draft';
+  const order = status === 'posted' ? 'posted_at DESC' : 'id DESC';
+  res.json({ posts: db.prepare(`SELECT * FROM posts WHERE status=? ORDER BY ${order} LIMIT 200`).all(status) });
 });
 
-app.post('/api/posts', async (req, res) => {
-  const { text, category, topic, source_url, scheduled_at, action = 'draft' } = req.body || {};
+app.post('/api/posts', (req, res) => {
+  const { text, category, topic, source_url, posted } = req.body || {};
   validText(text);
-  let status = 'draft';
-  let when = null;
-  if (action === 'schedule') { status = 'scheduled'; when = validDate(scheduled_at); }
-  const info = db.prepare('INSERT INTO posts (text, category, topic, source_url, status, scheduled_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(String(text).trim(), category || null, topic || null, source_url || null, status, when);
-  const id = info.lastInsertRowid;
-  if (action === 'now') {
-    const post = await publishPost(id);
-    return res.json({ post });
-  }
-  res.json({ post: db.prepare('SELECT * FROM posts WHERE id=?').get(id) });
+  const info = db.prepare('INSERT INTO posts (text, category, topic, source_url, status, posted_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(String(text).trim(), category || null, topic || null, source_url || null, posted ? 'posted' : 'draft', posted ? new Date().toISOString() : null);
+  res.json({ post: getPost(info.lastInsertRowid) });
 });
 
 app.put('/api/posts/:id', (req, res) => {
-  const post = db.prepare('SELECT * FROM posts WHERE id=?').get(req.params.id);
-  if (!post) return res.status(404).json({ error: 'Post tidak dijumpai.' });
-  if (['posted', 'publishing'].includes(post.status)) return res.status(400).json({ error: 'Post ini sudah/sedang diterbitkan.' });
-  const { text = post.text, scheduled_at, status } = req.body || {};
+  const post = getPost(req.params.id);
+  if (!post) return res.status(404).json({ error: 'Draf tidak dijumpai.' });
+  const { text = post.text, status = post.status } = req.body || {};
   validText(text);
-  let newStatus = post.status;
-  let when = post.scheduled_at;
-  if (status === 'scheduled') { newStatus = 'scheduled'; when = validDate(scheduled_at || post.scheduled_at); }
-  if (status === 'draft') { newStatus = 'draft'; when = null; }
-  db.prepare('UPDATE posts SET text=?, status=?, scheduled_at=?, error=NULL WHERE id=?').run(String(text).trim(), newStatus, when, post.id);
-  res.json({ post: db.prepare('SELECT * FROM posts WHERE id=?').get(post.id) });
+  const newStatus = status === 'posted' ? 'posted' : 'draft';
+  const postedAt = newStatus === 'posted' ? (post.posted_at || new Date().toISOString()) : null;
+  db.prepare('UPDATE posts SET text=?, status=?, posted_at=? WHERE id=?').run(String(text).trim(), newStatus, postedAt, post.id);
+  res.json({ post: getPost(post.id) });
 });
 
 app.delete('/api/posts/:id', (req, res) => {
-  db.prepare("DELETE FROM posts WHERE id=? AND status != 'publishing'").run(req.params.id);
+  db.prepare('DELETE FROM posts WHERE id=?').run(req.params.id);
   res.json({ ok: true });
 });
 
-app.post('/api/posts/:id/publish', async (req, res) => {
-  res.json({ post: await publishPost(Number(req.params.id)) });
-});
+// ---------- Draf automatik & tetapan ----------
+app.get('/api/autodraft', (_req, res) => res.json(getAutoDraft()));
 
-// ---------- Autopilot & tetapan ----------
-app.get('/api/autopilot', (_req, res) => res.json(getAutopilot()));
-
-app.put('/api/autopilot', (req, res) => {
+app.put('/api/autodraft', (req, res) => {
   const b = req.body || {};
-  const cur = getAutopilot();
+  const cur = getAutoDraft();
   const next = {
     enabled: typeof b.enabled === 'boolean' ? b.enabled : cur.enabled,
-    mode: ['auto', 'review'].includes(b.mode) ? b.mode : cur.mode,
     times: Array.isArray(b.times) ? [...new Set(b.times.filter((t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t)))].sort() : cur.times,
     categories: Array.isArray(b.categories) ? b.categories.filter((c) => CATEGORIES[c]) : cur.categories,
     tone: typeof b.tone === 'string' ? b.tone.slice(0, 50) : cur.tone,
-    jitter_minutes: Number.isFinite(+b.jitter_minutes) ? Math.min(Math.max(+b.jitter_minutes, 0), 60) : cur.jitter_minutes,
     extra: typeof b.extra === 'string' ? b.extra.slice(0, 500) : cur.extra,
   };
-  if (!next.categories.length) next.categories = DEFAULT_AUTOPILOT.categories;
-  setSetting('autopilot', next);
-  log('info', `Autopilot dikemas kini: ${next.enabled ? 'AKTIF' : 'tidak aktif'} (${next.mode}) pada ${next.times.join(', ')}`);
+  if (!next.categories.length) next.categories = DEFAULT_AUTODRAFT.categories;
+  setSetting('autodraft', next);
+  log('info', `Draf automatik: ${next.enabled ? 'AKTIF' : 'tidak aktif'} pada ${next.times.join(', ')}`);
   res.json(next);
 });
 
-app.post('/api/autopilot/run', async (_req, res) => {
-  // Jana satu draf sekarang (sentiasa sebagai draf untuk semakan)
-  const post = await runAutopilotOnce({ force: true });
+app.post('/api/autodraft/run', async (_req, res) => {
+  const post = await createAutoDraft();
   if (!post) return res.status(404).json({ error: 'Tiada topik baharu dijumpai.' });
   res.json({ post });
 });
@@ -269,12 +183,12 @@ app.get('/api/logs', (_req, res) => res.json({ logs: db.prepare('SELECT * FROM l
 
 // ---------- Ralat ----------
 app.use((err, _req, res, _next) => {
-  const status = err.status && err.status < 600 ? (err.status >= 500 ? 502 : err.status) : 500;
+  const status = err.status && err.status < 500 ? err.status : 500;
   if (status >= 500) log('error', err.message);
   res.status(status).json({ error: err.message || 'Ralat tidak diketahui.' });
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Threads Autopost berjalan di http://localhost:${PORT}`);
+  console.log(`🚀 Threads Post Generator berjalan di http://localhost:${PORT}`);
   startScheduler();
 });

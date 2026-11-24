@@ -130,3 +130,11 @@ legend { font-size: 13px; font-weight: 600; padding: 0 6px; }
 
 .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 12px; font-size: 14px; font-weight: 600; z-index: 50; max-width: calc(100% - 32px); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
 .toast.bad { background: var(--bad); color: #fff; }
+
+/* Kad post */
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.actions .btn { flex: 1 1 auto; }
+.actions .act-delete { flex: 0 0 auto; }
+.draft .post-meta { margin: 0 0 8px; }
+.draft .topic { margin-bottom: 8px; }
+#draftPill { cursor: pointer; }
