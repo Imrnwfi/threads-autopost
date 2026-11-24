@@ -1,0 +1,32 @@
+{
+  "name": "threads-autopost",
+  "version": "1.0.0",
+  "description": "Web app untuk jana, jadual & auto-post ke Threads dengan topik viral Malaysia (kewangan, makanan, voucher, bantuan kerajaan, info viral, AI).",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "threads",
+    "meta",
+    "autopost",
+    "scheduler",
+    "malaysia",
+    "ai"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.13.0",
+    "better-sqlite3": "^13.2.0",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "node-cron": "^4.6.0",
+    "rss-parser": "^3.13.0"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  }
+}
