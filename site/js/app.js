@@ -1,7 +1,7 @@
 // Threads Post Generator — aplikasi utama
 import {
   MAX_CHARS, MAX_MULTI, TONES, LANGS, AFF_STYLES, QUICK_TRANSFORMS, len, nameFromUrl, firstUrl,
-  generate, regeneratePart, researchProduct, transform, scoreHook, generateInfo,
+  generate, regeneratePart, researchProduct, transform, scoreHook, generateInfo, webLimited, markWebLimited,
 } from './ai.js';
 import { mountInfoEditor, openInfoSheet } from './infocard.js';
 import { state, save, touch, removeFrom, restore, get, set, onChange } from './store.js';
@@ -438,6 +438,9 @@ function syncStudioUI() {
   $('#topicFields').classList.toggle('hidden', aff);
   for (const id of ['#seriesRow', '#toneRow', '#hookBlock', '#countRow']) $(id).classList.toggle('hidden', info);
   $('#infoWebRow').classList.toggle('hidden', !info || S().provider === 'openai');
+  const limited = webLimited();
+  $('#infoWebNote').classList.toggle('hidden', !info || !limited || S().provider === 'openai');
+  if (limited && !studio.webOverride) $('#infoWeb').checked = false;
   $('#infoHint').classList.toggle('hidden', !info);
   $('#genBtn').innerHTML = info ? '🖼️ Jana kad info' : '✨ Jana sekarang';
   $('#affFields').classList.toggle('hidden', !aff);
@@ -489,6 +492,9 @@ $('#countMinus').addEventListener('click', () => { studio.count--; syncStudioUI(
 $('#countPlus').addEventListener('click', () => { studio.count++; syncStudioUI(); });
 $('#numbering').addEventListener('change', (e) => { studio.numbering = e.target.checked; saveStudio(); });
 $('#pDisclosure').addEventListener('change', (e) => { studio.disclosure = e.target.checked; saveStudio(); });
+$('#infoWeb').addEventListener('change', (e) => {
+  if (e.target.checked && webLimited()) { markWebLimited(false); studio.webOverride = true; syncStudioUI(); toast('Akan cuba carian web semula'); }
+});
 $('#useStyle').addEventListener('change', (e) => { studio.useStyle = e.target.checked; saveStudio(); });
 $('#hookRow').addEventListener('click', (e) => {
   if (e.target.closest('[data-clear-hook]')) { studio.hook = ''; syncStudioUI(); }
@@ -1094,6 +1100,7 @@ async function makeInfo() {
       ...aiCtx(), topic, snippet: $('#gSnippet').value.trim(), source: $('#gSource').value, category,
       web: $('#infoWeb').checked,
     });
+    if (data.webSkipped) { toast('Carian web tak tersedia untuk API key ini — kad dijana tanpa pengesahan web', true); syncStudioUI(); }
     box.innerHTML = '<div class="variants-head"><h3>🖼️ Kad Info</h3><span class="muted small">Leret gaya & saiz di bawah</span></div><div class="ie-root"></div>';
     mountInfoEditor($('.ie-root', box), data, {
       ...infoCtx(category),

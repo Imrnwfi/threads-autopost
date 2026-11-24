@@ -42,7 +42,8 @@ Topik di luar kategori ini ditapis keluar secara automatik.
 ### 🖼️ Kad Info
 - Maklumat ringkas versi gambar: tajuk, angka penting, 3–5 poin, nota & sumber.
 - Saiz **9:16 (Story/Status)**, 4:5 & 1:1 · 6 gaya (ikut kategori, tema, gelap, cerah, kertas, sunset).
-- AI boleh **sahkan fakta dengan carian web** (Gemini/Claude). Kad tanda ⚠️ jika fakta tidak dapat disahkan.
+- AI boleh **sahkan fakta dengan carian web** (Gemini berbayar / Claude). Kad tanda ⚠️ jika fakta tidak dapat disahkan.
+  - ℹ️ API key Gemini **percuma** tiada kuota carian Google — app akan jana tanpa carian web secara automatik.
 - **Kongsi terus** ke WhatsApp Status / Instagram Story, muat turun PNG, salin kapsyen, simpan ke Draf.
 
 ### 🔥 Topik terkini

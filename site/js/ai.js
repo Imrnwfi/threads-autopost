@@ -88,6 +88,16 @@ export function firstUrl(text = '') {
   return m ? m[0].replace(/[),.;!?]+$/, '') : '';
 }
 
+// ---------- Carian web (grounding) ----------
+// API key Gemini percuma tiada kuota carian Google → bila ditolak (429), app ingat selama 12 jam
+const WEB_KEY = 'tpg_webLimited';
+export function webLimited() {
+  try { return Date.now() - Number(localStorage.getItem(WEB_KEY) || 0) < 12 * 3600000; } catch { return false; }
+}
+export function markWebLimited(on = true) {
+  try { if (on) localStorage.setItem(WEB_KEY, String(Date.now())); else localStorage.removeItem(WEB_KEY); } catch { /* abaikan */ }
+}
+
 // ---------- Penyedia AI ----------
 async function readError(res, label) {
   const body = await res.json().catch(() => ({}));
@@ -388,11 +398,16 @@ Pulangkan HANYA JSON:
   let data = null;
   let note = '';
   try {
-    data = extractJson(await callAI(settings, system, user, { json: false, web: settings.provider !== 'openai', maxTokens: 4096 }));
+    const web = settings.provider !== 'openai' && !webLimited();
+    if (!web) throw Object.assign(new Error('web off'), { skipWeb: true });
+    data = extractJson(await callAI(settings, system, user, { json: false, web: true, maxTokens: 4096 }));
   } catch (e) {
-    const toolProblem = /web|tool|search|fetch|url/i.test(e.message);
-    if (e.code === 'NO_KEY' || e.status === 401 || e.status === 429 || (e.status === 403 && !toolProblem)) throw e;
-    note = 'Carian web tidak tersedia — maklumat diteka daripada link sahaja.';
+    const toolProblem = /web|tool|search|fetch|url|ground/i.test(e.message);
+    if (e.status === 429 && settings.provider === 'gemini') markWebLimited();
+    else if (e.code === 'NO_KEY' || e.status === 401 || (e.status === 403 && !toolProblem)) throw e;
+    note = e.skipWeb || e.status === 429
+      ? 'Carian web tidak tersedia untuk API key ini — maklumat diteka daripada link sahaja.'
+      : 'Carian web tidak tersedia — maklumat diteka daripada link sahaja.';
   }
 
   if (!data || (!data.found && !data.name)) {
@@ -426,8 +441,10 @@ Pulangkan HANYA JSON: {"highlights":"3-4 ciri umum dipisah koma","audience":"sia
  */
 export async function generateInfo(settings, opts) {
   if (!opts.topic?.trim()) throw new Error('Topik diperlukan.');
-  const canWeb = opts.web && settings.provider !== 'openai';
-  const system = `Kau pereka kandungan infografik untuk audiens Malaysia (kewangan, bantuan kerajaan, e-wallet).
+  const wantWeb = opts.web && settings.provider !== 'openai';
+  let canWeb = wantWeb && !webLimited();
+  let webSkipped = wantWeb && !canWeb;
+  const buildSystem = (canWeb) => `Kau pereka kandungan infografik untuk audiens Malaysia (kewangan, bantuan kerajaan, e-wallet).
 Tugas: ringkaskan maklumat jadi KAD INFO yang padat untuk dikongsi di Story / Status.
 Peraturan WAJIB:
 - Bahasa: ${LANGS[opts.lang]?.desc || LANGS.ms.desc}. Ayat pendek, mudah faham sekali pandang.
@@ -444,6 +461,7 @@ Peraturan WAJIB:
 ${opts.persona ? `- Persona akaun: ${opts.persona}` : ''}
 Pulangkan HANYA JSON:
 {"title":"","highlight":"","highlight_label":"","points":[{"emoji":"","text":""}],"note":"","source":"","caption":"","verified":true}`;
+  let system = buildSystem(canWeb);
   const user = `Kategori: ${catLabel(opts.category)}
 ${opts.fromPost ? 'Kandungan post asal' : 'Topik'}: ${opts.topic}
 ${opts.snippet ? `Ringkasan / fakta: ${opts.snippet}` : ''}
@@ -453,8 +471,12 @@ ${opts.source ? `Sumber: ${opts.source}` : ''}`;
   try {
     raw = await callAI(settings, system, user, { json: !canWeb, web: canWeb, maxTokens: 4096, temperature: 0.5 });
   } catch (e) {
-    const toolProblem = /web|tool|search|fetch|url/i.test(e.message);
-    if (!canWeb || !toolProblem) throw e;
+    const toolProblem = /web|tool|search|fetch|url|ground/i.test(e.message);
+    if (!canWeb || !(toolProblem || e.status === 429)) throw e;
+    // Carian web ditolak (biasanya API key percuma) → cuba semula tanpa carian web
+    if (e.status === 429 && settings.provider === 'gemini') markWebLimited();
+    canWeb = false; webSkipped = true;
+    system = buildSystem(false);
     raw = await callAI(settings, system, user, { json: true, maxTokens: 4096, temperature: 0.5 });
   }
   const d = extractJson(raw);
@@ -473,6 +495,7 @@ ${opts.source ? `Sumber: ${opts.source}` : ''}`;
     note: cut(d.note, 80),
     source: cut(d.source || opts.source, 70),
     caption: cut(d.caption, 450),
-    verified: d.verified !== false,
+    verified: !webSkipped && d.verified !== false,
+    webSkipped,
   };
 }
