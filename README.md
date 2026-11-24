@@ -46,6 +46,7 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
 - Draf: **cari & tapis**, **label warna**, **leret** kiri (padam) / kanan (sudah post), **buat asal**.
 - **Kad gambar** (4:5, 1:1, 9:16) — muat turun atau kongsi terus.
 - **PWA** — pasang di skrin utama, boleh dibuka luar talian.
+- **Kemas kini app** — butang "Kemas kini" bila ada versi baharu (dengan nota apa yang baru), atau kemas kini automatik bila app dibuka semula / ditutup.
 - **Sync Google Drive** antara telefon & laptop.
 
 ## Cara guna

@@ -5,6 +5,7 @@ import { $, $$, esc, uid, nowIso, toast, busy, copyText, fmtTime, openSheet, myP
 import { get, set, restore } from './store.js';
 import { HOOK_GROUPS, upcomingEvents, daysUntil, DEFAULT_PLAN, SLOT_TYPES, DAY_NAMES } from './data.js';
 import * as sync from './sync.js';
+import { renderSettingsBox } from './update.js';
 
 let A; // API daripada app.js
 const S = () => state.settings;
@@ -377,6 +378,7 @@ function renderSettings() {
   $('#sHaptic').checked = prefs.haptic;
   $('#sAnim').checked = prefs.anim;
   $('#goalOut').textContent = get('weeklyGoal', 5);
+  renderSettingsBox();
   updateSyncStatus();
 }
 function syncProviderUI() {

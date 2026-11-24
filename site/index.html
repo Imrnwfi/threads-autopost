@@ -39,6 +39,7 @@
       <button id="draftPill" class="pill"><span data-icon="notes" data-size="16"></span><b id="draftCount">0</b></button>
     </div>
   </header>
+  <div id="updateBar" class="update-bar hidden" role="status"></div>
 
   <main>
     <!-- ===================== UTAMA ===================== -->
@@ -222,7 +223,7 @@
         <button class="hub" data-goto="siri"><span class="hub-ic" data-icon="layers" data-size="24"></span><b>Siri</b><small>Kandungan bersiri #1, #2…</small></button>
         <button class="hub" data-goto="insight"><span class="hub-ic" data-icon="chart" data-size="24"></span><b>Insight</b><small>Masa terbaik untuk post</small></button>
         <button class="hub" data-goto="hook"><span class="hub-ic" data-icon="anchor" data-size="24"></span><b>Bank Hook</b><small>Templat ayat pembuka</small></button>
-        <button class="hub" data-goto="tetapan"><span class="hub-ic" data-icon="sliders" data-size="24"></span><b>Tetapan</b><small>AI, tema, gaya, sync</small></button>
+        <button class="hub" data-goto="tetapan"><span class="hub-ic" data-icon="sliders" data-size="24"></span><b>Tetapan <i class="upd-dot"></i></b><small>AI, tema, gaya, sync, kemas kini</small></button>
         <button class="hub hidden" id="installTile" data-install><span class="hub-ic" data-icon="download" data-size="24"></span><b>Pasang app</b><small>Ikon di skrin utama</small></button>
       </div>
     </section>
@@ -335,6 +336,11 @@
           <button class="btn" id="syncOffBtn">Putuskan</button>
         </div>
         <p class="muted small" id="syncStatus"></p>
+      </div>
+
+      <div class="card form">
+        <h3>🔄 Kemas kini app</h3>
+        <div id="updateBox"></div>
       </div>
 
       <div class="card">

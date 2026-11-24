@@ -12,6 +12,7 @@ import { icon, hydrateIcons } from './icons.js';
 import { HOOK_GROUPS, upcomingEvents, daysUntil, DEFAULT_PLAN, SLOT_TYPES, DAY_NAMES, LABELS } from './data.js';
 import { openImageCard } from './imagecard.js';
 import { initPages } from './pages.js';
+import { initUpdates } from './update.js';
 
 const threadsIntent = (text) => `https://www.threads.com/intent/post?text=${encodeURIComponent(text)}`;
 const S = () => state.settings;
@@ -1275,9 +1276,6 @@ document.addEventListener('click', async (e) => {
   }
   if (e.target.closest('[data-dismiss-install]')) { set('installDismissed', true); $('#installBanner').classList.add('hidden'); }
 });
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
-}
 
 // =========================================================
 // Mula
@@ -1290,6 +1288,7 @@ renderers.trending = () => { renderTrendChips(); renderTrending(); };
 onChange((k) => { if (k === 'posts') refreshCounts(); });
 
 hydrateIcons();
+initUpdates();
 applyTheme(themeChoice);
 renderTrendChips();
 syncStudioUI();
