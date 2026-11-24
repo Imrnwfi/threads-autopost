@@ -91,27 +91,60 @@ export default {
     const hit = await cache.match(key);
     if (hit) return new Response(hit.body, { status: hit.status, headers: { ...Object.fromEntries(hit.headers), ...cors(req) } });
 
-    let best = null;
+    const debug = new URL(req.url).searchParams.has('debug');
+    const trace = [];
+    // 1) Ikut redirect secara manual (link pendek → link produk)
     let finalUrl = target.href;
+    for (let i = 0; i < 6; i++) {
+      let res;
+      try {
+        res = await fetch(finalUrl, { redirect: 'manual', headers: { 'User-Agent': UAS[2], 'Accept': 'text/html' } });
+      } catch (e) { trace.push({ step: 'redirect', url: finalUrl, error: String(e) }); break; }
+      const loc = res.headers.get('location');
+      trace.push({ step: 'redirect', url: finalUrl, status: res.status, location: loc });
+      if (res.status >= 300 && res.status < 400 && loc) { finalUrl = new URL(loc, finalUrl).href; continue; }
+      if (res.status === 200) {
+        const html = await res.text();
+        const m = html.match(/(?:http-equiv=["']refresh["'][^>]*url=|window\.location(?:\.href)?\s*=\s*["']|og:url["'][^>]*content=["'])([^"'>\s]+)/i);
+        const next = m && decode(m[1]);
+        if (next && next !== finalUrl && /shopee\.com\.my/.test(next) && i < 5) { trace.push({ step: 'html-redirect', to: next }); finalUrl = new URL(next, finalUrl).href; continue; }
+      }
+      break;
+    }
+    // Buka pautan "universal-link" → link produk sebenar
+    try {
+      const u = new URL(finalUrl);
+      const redir = u.searchParams.get('redir') || u.searchParams.get('url');
+      if (redir && /shopee\.com\.my/.test(redir)) finalUrl = decodeURIComponent(redir);
+    } catch { /* abaikan */ }
+
+    // 2) Baca halaman produk
+    let best = null;
     for (const ua of UAS) {
       try {
-        const res = await fetch(target.href, {
+        const res = await fetch(finalUrl, {
           redirect: 'follow',
           headers: { 'User-Agent': ua, 'Accept': 'text/html,application/xhtml+xml', 'Accept-Language': 'ms-MY,ms;q=0.9,en;q=0.8' },
-          cf: { cacheTtl: 600 },
         });
-        finalUrl = res.url || finalUrl;
         const html = await res.text();
-        const info = parse(html, finalUrl);
+        const info = parse(html, res.url || finalUrl);
+        trace.push({ step: 'page', ua: ua.slice(0, 20), status: res.status, url: res.url, len: html.length, title: (html.match(/<title[^>]*>([^<]*)/i) || [])[1]?.slice(0, 80), name: info.name });
+        if (res.url) finalUrl = res.url;
         if (info.name && (!best || (info.description && !best.description))) best = info;
         if (best?.name && best.description) break;
-      } catch { /* cuba UA seterusnya */ }
+      } catch (e) { trace.push({ step: 'page', ua: ua.slice(0, 20), error: String(e) }); }
+    }
+    // 3) Sandaran: nama daripada slug URL
+    if (!best?.name) {
+      const n = nameFromUrl(finalUrl);
+      if (n) best = { ...(best || {}), name: n, description: best?.description || '', price: best?.price || '', image: best?.image || '', fromUrl: true };
     }
     const body = best?.name
       ? { ok: true, url: finalUrl, ...best }
       : { ok: false, url: finalUrl, name: nameFromUrl(finalUrl), error: 'Shopee tidak memulangkan maklumat produk' };
-    const out = json(req, body, 200, body.ok ? CACHE_SECONDS : 60);
-    if (body.ok) ctx.waitUntil(cache.put(key, out.clone()));
+    if (debug) body.trace = trace;
+    const out = json(req, body, 200, body.ok && !debug ? CACHE_SECONDS : 0);
+    if (body.ok && !debug) ctx.waitUntil(cache.put(key, out.clone()));
     return out;
   },
 };
