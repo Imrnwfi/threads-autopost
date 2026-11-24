@@ -1,10 +1,6 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
 
-process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'tap-'));
 
 const now = new Date().toUTCString();
 const TRENDS_XML = `<?xml version="1.0"?><rss xmlns:ht="https://trends.google.com/trending/rss" version="2.0"><channel><title>Daily</title>
@@ -24,10 +20,9 @@ globalThis.fetch = async (url) => {
   return new Response('not found', { status: 404 });
 };
 
-let trends, dbm;
+let trends;
 before(async () => {
-  trends = await import('../src/trends.js');
-  dbm = await import('../src/db.js');
+  trends = await import('../lib/trends.js');
 });
 
 test('guessCategory', () => {
@@ -51,10 +46,17 @@ test('getTrending gabung tajuk serupa & beri skor', async () => {
   assert.ok(!/ - Sinar Harian$/.test(top.title), 'nama akhbar dibuang');
 });
 
-test('topik yang sudah digunakan ditanda & dilangkau', async () => {
-  dbm.markTopicUsed('Cara semak status SARA');
-  const t = await trends.pickTopic('bantuan');
-  assert.notEqual(t.title, 'Cara semak status SARA');
-  const { categories } = await trends.getTrending(['bantuan'], 10);
-  assert.ok(categories.bantuan.find((x) => x.title === 'Cara semak status SARA').used);
+test('fetch-trends menulis fail JSON untuk laman', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'tpg-')), 'trends.json');
+  const mock = path.join(path.dirname(out), 'mock.mjs');
+  fs.writeFileSync(mock, `const N=${JSON.stringify(NEWS_XML)};const T=${JSON.stringify(TRENDS_XML)};globalThis.fetch=async(u)=>new Response(String(u).includes('trends.google')?T:N);`);
+  execFileSync(process.execPath, ['--import', mock, 'scripts/fetch-trends.mjs', out]);
+  const data = JSON.parse(fs.readFileSync(out, 'utf8'));
+  assert.ok(data.fetched_at);
+  assert.equal(Object.keys(data.categories).length, 6);
+  assert.equal(data.labels.bantuan.label, 'Bantuan Kerajaan');
 });

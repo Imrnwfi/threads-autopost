@@ -1,7 +1,5 @@
 node_modules/
-data/
+site/data/
 .env
-*.db
-*.db-*
 .DS_Store
 npm-debug.log*

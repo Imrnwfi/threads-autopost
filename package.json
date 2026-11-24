@@ -1,11 +1,11 @@
 {
   "name": "threads-autopost",
   "version": "1.0.0",
-  "description": "Web app untuk cari topik viral Malaysia & jana post Threads dengan AI (kewangan, makanan, voucher, bantuan kerajaan, info viral, AI). Anda post sendiri.",
-  "main": "server.js",
+  "description": "Laman web (GitHub Pages) untuk cari topik viral Malaysia & jana post Threads dengan AI. Anda post sendiri.",
+  "main": "lib/trends.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js",
+    "trends": "node scripts/fetch-trends.mjs",
+    "dev": "node scripts/fetch-trends.mjs; npx --yes serve site",
     "test": "node --test"
   },
   "keywords": [
@@ -17,11 +17,6 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.13.0",
-    "better-sqlite3": "^13.2.0",
-    "dotenv": "^18.0.10",
-    "express": "^5.3.0",
-    "node-cron": "^4.6.0",
     "rss-parser": "^3.13.0"
   },
   "type": "module",

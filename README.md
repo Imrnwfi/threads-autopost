@@ -1,8 +1,10 @@
 # 🧵 Threads Post Generator
 
-Web app untuk **cari topik viral Malaysia** dan **jana post Threads dengan AI**: kewangan, makanan, voucher & promo, bantuan kerajaan, info viral dan info AI.
+Laman web untuk **cari topik viral Malaysia** dan **jana post Threads dengan AI**: kewangan, makanan, voucher & promo, bantuan kerajaan, info viral dan info AI.
 
-App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (app Threads dibuka dengan teks siap diisi), dan post sendiri. Tak perlu Meta Developer App atau Threads API.
+👉 **Buka:** https://imrnwfi.github.io/threads-autopost/
+
+App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (Threads dibuka dengan teks siap diisi), dan post sendiri.
 
 ![Skrin trending](docs/screenshot.png)
 
@@ -10,79 +12,65 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (a
 
 | | |
 |---|---|
-| 🔥 **Trending** | Topik viral dari Google Trends (MY) + Google News (BM & English, 48 jam terakhir). Tajuk serupa digabung dan diberi skor ikut bilangan sumber, trafik carian & kebaharuan. |
-| ✨ **Jana post** | AI tulis 1–5 variasi post (< 500 aksara) dengan hook, nada pilihan (santai/informatif/lucu/formal) & persona akaun anda. AI diarah supaya tidak reka fakta. |
-| 📝 **Draf** | Simpan, sunting, salin, atau **Buka di Threads** sekali tekan. Tanda "Sudah post" untuk jejak apa yang dah dikongsi. |
-| 🤖 **Draf automatik** | (Pilihan) Pada masa ditetapkan, app jana draf daripada topik viral bergilir ikut kategori. Topik yang sudah digunakan tak diulang (30 hari). |
-| 🔐 **Log masuk** | Dilindungi kata laluan. |
-| 📱 **Mesra telefon** | UI Bahasa Melayu, mod gelap/cerah automatik. |
+| 🔥 **Trending** | Topik viral dari Google Trends (MY) + Google News (BM & English, 48 jam terakhir), dikemas kini **setiap jam** oleh GitHub Actions. Tajuk serupa digabung dan diberi skor ikut bilangan sumber, trafik carian & kebaharuan. |
+| ✨ **Jana post** | AI tulis 1–5 variasi post (< 500 aksara) dengan hook, nada pilihan & persona akaun anda. AI diarah supaya tidak reka fakta. |
+| 📝 **Draf** | Simpan, sunting, salin, atau **Buka di Threads** sekali tekan. Tanda "Sudah post" untuk jejak apa yang dah dikongsi. Eksport/import draf (JSON). |
+| 🤖 **Pilihan AI** | Google Gemini (ada tier percuma), Anthropic Claude, atau mana-mana API serasi OpenAI (OpenAI, Groq, OpenRouter). |
+| 🔒 **Privasi** | Tiada pelayan. API key & draf disimpan dalam browser anda sahaja dan dihantar terus ke penyedia AI. |
 
-## Keperluan
+## Cara guna
 
-- Node.js 20 atau lebih baharu (atau Docker)
-- API key AI: [Anthropic Claude](https://console.anthropic.com) **atau** mana-mana API serasi OpenAI (OpenAI, Google Gemini, Groq, OpenRouter)
+1. Buka laman di atas (Chrome/Safari, telefon atau komputer).
+2. **Tetapan** → pilih penyedia AI → tampal API key → Simpan.
+   - Gemini: dapatkan key percuma di [Google AI Studio](https://aistudio.google.com/apikey).
+3. **Trending** → tekan **✨ Jana post** pada topik yang menarik.
+4. Edit jika perlu → **🧵 Buka di Threads** → post → tekan **✓ Sudah post**.
 
-## Pasang & jalankan
+## Cara ia berfungsi
+
+```
+GitHub Actions (setiap jam)
+  └─ scripts/fetch-trends.mjs → ambil RSS Google Trends & Google News
+       └─ site/data/trends.json
+            └─ deploy ke GitHub Pages bersama site/ (HTML/CSS/JS)
+
+Browser anda
+  ├─ baca data/trends.json
+  ├─ panggil API AI terus (guna key anda)
+  └─ simpan draf dalam localStorage
+```
+
+## Pasang sendiri (fork)
+
+1. Fork repo ini.
+2. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+3. **Actions** → aktifkan workflow → jalankan **"Kemas kini trending & deploy ke GitHub Pages"** (Run workflow).
+4. Laman anda: `https://<username>.github.io/<nama-repo>/`
+
+> Nota: GitHub mematikan workflow berjadual dalam repo awam selepas 60 hari tanpa aktiviti. Jika trending berhenti dikemas kini, buka tab **Actions** dan aktifkan semula.
+
+### Jalankan di komputer
 
 ```bash
-git clone https://github.com/Imrnwfi/threads-autopost.git
-cd threads-autopost
 npm install
-cp .env.example .env   # isi APP_PASSWORD & API key AI
-npm start
+npm run dev      # ambil trending + buka http://localhost:3000
+npm test
 ```
-
-Buka `http://localhost:3000` dan log masuk dengan `APP_PASSWORD`.
-
-### Dengan Docker
-
-```bash
-cp .env.example .env
-docker compose up -d
-```
-
-Data (SQLite) disimpan dalam folder `./data`.
-
-## Sediakan AI
-
-**Claude (default)**
-```env
-AI_PROVIDER=anthropic
-ANTHROPIC_API_KEY=sk-ant-...
-```
-
-**Google Gemini (ada tier percuma)**
-```env
-AI_PROVIDER=openai
-OPENAI_API_KEY=<gemini api key>
-OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
-AI_MODEL=gemini-2.5-flash
-```
-
-**OpenAI / Groq / OpenRouter**: set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, `OPENAI_BASE_URL` dan `AI_MODEL` mengikut penyedia.
-
-## Deploy
-
-- **Railway / Render / Fly.io**: pasang **persistent volume** ke `/app/data` supaya draf tak hilang.
-- **VPS**: Docker Compose + Caddy/Nginx untuk HTTPS.
-- Jika guna **Draf automatik**, server mesti berjalan 24 jam (hosting percuma yang "tidur" bila idle tak sesuai).
 
 ## Struktur projek
 
 ```
-server.js          # Express server, API & log masuk
-src/trends.js      # Pencari topik viral (Google Trends + Google News RSS)
-src/ai.js          # Jana post (Claude / API serasi OpenAI)
-src/scheduler.js   # Draf automatik
-src/db.js          # SQLite (better-sqlite3)
-public/            # Frontend (HTML/CSS/JS tanpa framework)
-test/              # Ujian (npm test)
+site/                     # Laman web (index.html, app.js, style.css)
+lib/trends.js             # Logik cari & skor topik viral
+scripts/fetch-trends.mjs  # Dijalankan oleh GitHub Actions
+.github/workflows/pages.yml
+test/
 ```
 
 ## Tips
 
 - Untuk **bantuan kerajaan** dan **kewangan**, sentiasa semak fakta di laman rasmi sebelum post — AI hanya guna tajuk/ringkasan berita.
-- Threads hadkan teks **500 aksara** setiap post; kaunter aksara ada pada setiap draf.
+- Draf disimpan per browser. Guna **Eksport/Import** di Tetapan untuk pindah ke peranti lain.
 
 ## Lesen
 

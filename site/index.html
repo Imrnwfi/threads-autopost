@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f0f10" />
+  <title>Threads Post Generator — Topik Viral Malaysia & Jana Post AI</title>
+  <meta name="description" content="Cari topik viral Malaysia (kewangan, makanan, voucher, bantuan kerajaan, info viral, AI) dan jana post Threads dengan AI. Percuma, terus dalam browser." />
+  <meta property="og:title" content="Threads Post Generator" />
+  <meta property="og:description" content="Cari topik viral Malaysia & jana post Threads dengan AI." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🧵 <span>Threads Post Generator</span></div>
+    <button id="draftPill" class="pill">📝 0 draf</button>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="trending" class="active"><span>🔥</span>Trending</button>
+    <button data-tab="jana"><span>✨</span>Jana</button>
+    <button data-tab="draf"><span>📝</span>Draf</button>
+    <button data-tab="tetapan"><span>⚙️</span>Tetapan</button>
+  </nav>
+
+  <main>
+    <!-- TRENDING -->
+    <section id="tab-trending" class="tab">
+      <div id="setupBanner" class="card banner hidden">
+        <b>👋 Selamat datang!</b> Untuk jana post, masukkan API key AI anda dulu di <a href="#tetapan" data-goto="tetapan">Tetapan</a>. Gemini ada tier percuma.
+      </div>
+      <div class="section-head">
+        <h2>Topik viral sekarang</h2>
+        <button class="btn" id="refreshTrending">↻</button>
+      </div>
+      <div class="chips" id="catChips"></div>
+      <p class="muted small" id="trendMeta"></p>
+      <div id="trendList" class="list"></div>
+    </section>
+
+    <!-- JANA -->
+    <section id="tab-jana" class="tab hidden">
+      <h2>Jana post dengan AI</h2>
+      <form id="genForm" class="card form">
+        <label>Topik
+          <input id="gTopic" required placeholder="cth. STR fasa 4 mula dibayar minggu ini" />
+        </label>
+        <label>Ringkasan / fakta sumber <span class="muted">(pilihan, bantu AI elak reka fakta)</span>
+          <textarea id="gSnippet" rows="3" placeholder="Tampal ringkasan berita atau info penting di sini"></textarea>
+        </label>
+        <div class="row">
+          <label>Kategori <select id="gCategory"></select></label>
+          <label>Nada
+            <select id="gTone">
+              <option value="santai">Santai</option>
+              <option value="informatif">Informatif</option>
+              <option value="lucu">Lucu</option>
+              <option value="formal">Formal</option>
+            </select>
+          </label>
+          <label>Variasi
+            <select id="gCount"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+          </label>
+        </div>
+        <label>Arahan tambahan <span class="muted">(pilihan)</span>
+          <input id="gExtra" placeholder="cth. tambah tips jimat, sebut 'link di komen'" />
+        </label>
+        <input type="hidden" id="gSourceUrl" />
+        <input type="hidden" id="gSource" />
+        <button class="btn primary block" type="submit" id="genBtn">✨ Jana post</button>
+      </form>
+      <div id="genResults" class="list"></div>
+    </section>
+
+    <!-- DRAF -->
+    <section id="tab-draf" class="tab hidden">
+      <h2>Draf saya</h2>
+      <div class="seg" id="postFilter">
+        <button data-s="draft" class="active">Belum post</button>
+        <button data-s="posted">Sudah post</button>
+      </div>
+      <p class="muted small">Tekan <b>Buka di Threads</b> — Threads dibuka dengan teks siap diisi. Lepas post, tekan <b>Sudah post</b>. Draf disimpan dalam browser ini sahaja.</p>
+      <div id="postList" class="list"></div>
+    </section>
+
+    <!-- TETAPAN -->
+    <section id="tab-tetapan" class="tab hidden">
+      <h2>Tetapan</h2>
+      <form id="settingsForm" class="card form">
+        <h3>AI</h3>
+        <label>Penyedia AI
+          <select id="sProvider">
+            <option value="gemini">Google Gemini (ada tier percuma)</option>
+            <option value="anthropic">Anthropic Claude</option>
+            <option value="openai">OpenAI / API serasi OpenAI (Groq, OpenRouter…)</option>
+          </select>
+        </label>
+        <label>API key
+          <input id="sKey" type="password" autocomplete="off" placeholder="Tampal API key di sini" />
+        </label>
+        <p class="muted small" id="keyHelp"></p>
+        <label>Model <span class="muted">(kosongkan untuk default)</span>
+          <input id="sModel" placeholder="" />
+        </label>
+        <label id="baseUrlRow" class="hidden">Base URL
+          <input id="sBaseUrl" placeholder="https://api.openai.com/v1" />
+        </label>
+        <label>Persona / gaya akaun anda
+          <textarea id="sPersona" rows="3" placeholder="cth. Akaun info jimat untuk anak muda Malaysia. Gaya santai, guna 'korang', banyak tips praktikal."></textarea>
+        </label>
+        <button class="btn primary" type="submit">💾 Simpan</button>
+        <p class="muted small">🔒 API key dan draf disimpan dalam browser anda sahaja (localStorage) dan dihantar terus ke penyedia AI — tidak ke mana-mana pelayan lain. Jangan guna komputer awam.</p>
+      </form>
+
+      <div class="card">
+        <h3>Data</h3>
+        <div class="row wrap">
+          <button class="btn" id="exportBtn">⬇️ Eksport draf</button>
+          <label class="btn file-btn">⬆️ Import draf<input type="file" id="importInput" accept="application/json" hidden /></label>
+          <button class="btn danger" id="clearBtn">🗑️ Padam semua data</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js" type="module"></script>
+</body>
+</html>
