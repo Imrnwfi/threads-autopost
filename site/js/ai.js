@@ -3,7 +3,15 @@
 // Semua panggilan dibuat terus dari browser menggunakan API key pengguna.
 
 export const MAX_CHARS = 500;
-export const DEFAULT_MODELS = { gemini: 'gemini-3.6-flash', anthropic: 'claude-sonnet-5-5', openai: 'gpt-4o-mini' };
+export const DEFAULT_MODELS = {
+  gemini: 'gemini-3.6-flash', anthropic: 'claude-sonnet-5-5', openai: 'gpt-4o-mini',
+  groq: 'openai/gpt-oss-120b', openrouter: 'openrouter/free',
+};
+/** Penyedia serasi OpenAI dengan Base URL tetap */
+export const PRESET_BASE = { groq: 'https://api.groq.com/openai/v1', openrouter: 'https://openrouter.ai/api/v1' };
+export const PROVIDER_NAMES = { gemini: 'Gemini', anthropic: 'Claude', openai: 'OpenAI', groq: 'Groq', openrouter: 'OpenRouter' };
+/** Penyedia yang tiada carian / bacaan web */
+export const noWeb = (provider) => !['gemini', 'anthropic'].includes(provider);
 export const LINK_TOKEN = '{LINK}';
 export const MAX_MULTI = 6;
 
@@ -129,7 +137,23 @@ async function readError(res, label) {
  * @param {object} settings { provider, apiKey, model, baseUrl }
  * @param {object} opts { json, web (benarkan carian/baca web), maxTokens, temperature }
  */
-export async function callAI(settings, system, user, { json = true, web = false, maxTokens = 8192, temperature } = {}) {
+export async function callAI(settings, system, user, opts = {}) {
+  try {
+    return await callAIOnce(settings, system, user, opts);
+  } catch (e) {
+    // Kuota habis → cuba kunci sandaran (tanpa web)
+    const canBackup = settings.backupKey && settings.backupProvider && (e.status === 429 || e.status === 503) && !opts.web;
+    if (!canBackup) throw e;
+    const backup = { ...settings, provider: settings.backupProvider, apiKey: settings.backupKey, model: '', baseUrl: '', backupKey: '' };
+    try {
+      const out = await callAIOnce(backup, system, user, opts);
+      try { window.dispatchEvent(new CustomEvent('tpg:backup', { detail: PROVIDER_NAMES[backup.provider] })); } catch { /* abaikan */ }
+      return out;
+    } catch { throw e; }
+  }
+}
+
+async function callAIOnce(settings, system, user, { json = true, web = false, maxTokens = 8192, temperature } = {}) {
   const { provider, apiKey } = settings;
   if (!apiKey) throw Object.assign(new Error('Masukkan API key AI di Tetapan dulu.'), { code: 'NO_KEY' });
   const model = settings.model || DEFAULT_MODELS[provider];
@@ -180,17 +204,17 @@ export async function callAI(settings, system, user, { json = true, web = false,
   }
 
   // API serasi OpenAI (tiada carian web)
-  const base = (settings.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
+  const base = (PRESET_BASE[provider] || settings.baseUrl || 'https://api.openai.com/v1').replace(/\/$/, '');
   const body = { model, temperature: temp, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] };
   if (json) body.response_format = { type: 'json_object' };
   const post = () => fetch(`${base}/chat/completions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`, ...(provider === 'openrouter' ? { 'X-Title': 'Threads Post Generator' } : {}) },
     body: JSON.stringify(body),
   });
   let res = await post();
   if (res.status === 400 && body.response_format) { delete body.response_format; res = await post(); }
-  if (!res.ok) throw await readError(res, 'AI');
+  if (!res.ok) throw await readError(res, PROVIDER_NAMES[provider] || 'AI');
   const data = await res.json();
   return data.choices?.[0]?.message?.content || '';
 }
@@ -451,8 +475,8 @@ Pulangkan HANYA JSON:
       if (e.status === 429 && settings.provider === 'gemini') (mode === 'url' ? markUrlLimited : markWebLimited)();
     }
   };
-  if (settings.provider !== 'openai' && !urlLimited()) await tryAI('url');
-  if (!data && settings.provider !== 'openai' && !webLimited()) await tryAI(true);
+  if (!noWeb(settings.provider) && !urlLimited()) await tryAI('url');
+  if (!data && !noWeb(settings.provider) && !webLimited()) await tryAI(true);
   if (data) {
     return {
       ...empty, found: true, source: 'ai', name: String(data.name).slice(0, 120), price: String(data.price || ''),
@@ -485,7 +509,7 @@ Pulangkan HANYA JSON: {"highlights":"3-4 ciri umum dipisah koma","audience":"sia
  */
 export async function generateInfo(settings, opts) {
   if (!opts.topic?.trim()) throw new Error('Topik diperlukan.');
-  const wantWeb = opts.web && settings.provider !== 'openai';
+  const wantWeb = opts.web && !noWeb(settings.provider);
   let canWeb = wantWeb && !webLimited();
   let webSkipped = wantWeb && !canWeb;
   const buildSystem = (canWeb) => `Kau pereka kandungan infografik untuk audiens Malaysia (kewangan, bantuan kerajaan, e-wallet).

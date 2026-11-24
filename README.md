@@ -11,6 +11,17 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
   <img src="docs/bebenang.png" width="260" alt="Pratonton bebenang" />
 </p>
 
+## Penyedia AI
+
+| Penyedia | Kos | Nota |
+|---|---|---|
+| Google Gemini | Percuma (had kecil) | Boleh baca web / link |
+| Groq ⭐ | Percuma (had harian besar) | [console.groq.com/keys](https://console.groq.com/keys) — tiada carian web |
+| OpenRouter | Model percuma (±50/hari) | [openrouter.ai/settings/keys](https://openrouter.ai/settings/keys) |
+| Anthropic Claude | Berbayar | Boleh baca web / link |
+
+**Kunci sandaran:** Tetapan → 🛟 Kunci sandaran. Bila penyedia utama kehabisan kuota, app terus guna kunci sandaran (cth. Gemini utama + Groq sandaran).
+
 ## Pembaca link Shopee
 
 Supaya app boleh **baca terus** nama, harga & penerangan produk daripada link Shopee (termasuk link pendek `s.shopee.com.my`), pasang pembaca link percuma di Cloudflare (±5 minit, sekali sahaja):

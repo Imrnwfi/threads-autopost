@@ -16,7 +16,7 @@ function emit(kind) { listeners.forEach((fn) => fn(kind)); }
 
 export const DEFAULT_SETTINGS = {
   provider: 'gemini', apiKey: '', model: '', baseUrl: '', persona: '', name: '', user: '',
-  styleSamples: '', styleGuide: '', useStyle: false, lang: 'ms', googleClientId: '', readerUrl: '',
+  styleSamples: '', styleGuide: '', useStyle: false, lang: 'ms', googleClientId: '', readerUrl: '', backupProvider: '', backupKey: '',
 };
 
 /** Keadaan aplikasi — koleksi disimpan berasingan dalam localStorage */

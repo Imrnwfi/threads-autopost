@@ -1,8 +1,7 @@
 // Threads Post Generator — aplikasi utama
 import {
   MAX_CHARS, MAX_MULTI, TONES, LANGS, AFF_STYLES, QUICK_TRANSFORMS, len, nameFromUrl, firstUrl,
-  generate, regeneratePart, researchProduct, transform, scoreHook, generateInfo, webLimited, markWebLimited, parseShareText,
-} from './ai.js';
+  generate, regeneratePart, researchProduct, transform, scoreHook, generateInfo, webLimited, markWebLimited, parseShareText, noWeb } from './ai.js';
 import { mountInfoEditor, openInfoSheet } from './infocard.js';
 import { state, save, touch, removeFrom, restore, get, set, onChange } from './store.js';
 import {
@@ -438,9 +437,9 @@ function syncStudioUI() {
   const multi = aff && studio.multi;
   $('#topicFields').classList.toggle('hidden', aff);
   for (const id of ['#seriesRow', '#toneRow', '#hookBlock', '#countRow']) $(id).classList.toggle('hidden', info);
-  $('#infoWebRow').classList.toggle('hidden', !info || S().provider === 'openai');
+  $('#infoWebRow').classList.toggle('hidden', !info || noWeb(S().provider));
   const limited = webLimited();
-  $('#infoWebNote').classList.toggle('hidden', !info || !limited || S().provider === 'openai');
+  $('#infoWebNote').classList.toggle('hidden', !info || !limited || noWeb(S().provider));
   if (limited && !studio.webOverride) $('#infoWeb').checked = false;
   $('#infoHint').classList.toggle('hidden', !info);
   $('#genBtn').innerHTML = info ? '🖼️ Jana kad info' : '✨ Jana sekarang';
@@ -1090,7 +1089,7 @@ function openOnboarding() {
       `<h2>Pilih gaya anda 🎨</h2><p class="muted">Boleh tukar bila-bila masa melalui butang palet di atas.</p><div class="theme-grid"></div>`,
       `<h2>Sambung AI 🔑</h2>
        <p class="muted">Gemini ada tier <b>percuma</b>. Buka <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> → <b>Create API key</b> → salin & tampal di sini.</p>
-       <label>Penyedia <select class="ob-prov"><option value="gemini">Google Gemini (percuma)</option><option value="anthropic">Anthropic Claude</option><option value="openai">OpenAI / serasi</option></select></label>
+       <label>Penyedia <select class="ob-prov"><option value="gemini">Google Gemini (percuma)</option><option value="groq">Groq (percuma, had besar)</option><option value="openrouter">OpenRouter (model percuma)</option><option value="anthropic">Anthropic Claude</option><option value="openai">OpenAI / serasi</option></select></label>
        <label>API key <input class="ob-key" type="password" autocomplete="off" placeholder="AIza…" value="${esc(S().apiKey)}" /></label>
        <p class="muted small">🔒 Disimpan dalam browser ini sahaja.</p>`,
     ][step];
@@ -1433,3 +1432,5 @@ if (!handleShare()) {
 }
 loadTrending();
 if (!get('onboarded', false) && !S().apiKey && !state.posts.length) setTimeout(openOnboarding, 400);
+
+window.addEventListener('tpg:backup', (e) => toast(`🛟 Kuota penyedia utama habis — guna sandaran (${e.detail})`));

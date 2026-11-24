@@ -364,7 +364,9 @@ $('#hookList').addEventListener('click', (e) => {
 const KEY_HELP = {
   gemini: 'Dapatkan key percuma di <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>. Sokong carian web untuk "Isi automatik".',
   anthropic: 'Dapatkan key di <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Claude Console</a>. Carian web perlu diaktifkan dalam Console.',
-  openai: 'Guna key OpenAI, atau set Base URL untuk Groq/OpenRouter. (Tiada carian web — "Isi automatik" hanya teka dari link.)',
+  groq: 'Percuma, had harian besar. Daftar di <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a> → Create API Key. (Tiada carian web — guna Pembaca link untuk produk Shopee.)',
+  openrouter: 'Model percuma (had ±50 permintaan sehari). Dapatkan key di <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener">openrouter.ai/settings/keys</a>. (Tiada carian web.)',
+  openai: 'Guna key OpenAI, atau set Base URL untuk penyedia serasi OpenAI lain. (Tiada carian web.)',
 };
 function renderSettings() {
   const s = S();
@@ -374,6 +376,7 @@ function renderSettings() {
   $('#styleSamples').value = s.styleSamples || ''; $('#styleGuide').value = s.styleGuide || ''; $('#sUseStyle').checked = !!s.useStyle;
   $('#sClientId').value = s.googleClientId || '';
   $('#sReader').value = s.readerUrl || '';
+  $('#sBackupProvider').value = s.backupProvider || ''; $('#sBackupKey').value = s.backupKey || '';
   syncProviderUI();
   const fs = String(get('fontScale', 1));
   $$('#fontSeg button').forEach((b) => b.classList.toggle('active', b.dataset.v === fs));
@@ -388,9 +391,12 @@ function syncProviderUI() {
   $('#sModel').placeholder = DEFAULT_MODELS[p];
   $('#keyHelp').innerHTML = KEY_HELP[p];
   $('#baseUrlRow').classList.toggle('hidden', p !== 'openai');
+  const b = $('#sBackupProvider').value;
+  $('#backupHelp').innerHTML = b ? KEY_HELP[b] : '';
 }
 function initSettings() {
   $('#sProvider').addEventListener('change', syncProviderUI);
+  $('#sBackupProvider').addEventListener('change', syncProviderUI);
   const saveReader = () => {
     const v = $('#sReader').value.trim().replace(/\/+$/, '');
     if (v && !/^https:\/\/\S+$/i.test(v)) throw new Error('URL mesti bermula dengan https://');
@@ -427,6 +433,8 @@ function initSettings() {
       apiKey: $('#sKey').value.trim(),
       model: $('#sModel').value.trim(),
       baseUrl: $('#sBaseUrl').value.trim(),
+      backupProvider: $('#sBackupProvider').value,
+      backupKey: $('#sBackupKey').value.trim(),
       persona: $('#sPersona').value.trim().slice(0, 1000),
     });
     touch(state.settings); save('settings');

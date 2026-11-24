@@ -597,3 +597,7 @@ body.has-update .tabs [data-tab=lagi] span::after { content: ""; position: absol
 .ie-point .ie-text { flex: 1; min-width: 0; }
 .warn-banner { margin-top: 0; }
 #modeSeg button { padding-left: 6px; padding-right: 6px; }
+
+/* Kunci sandaran */
+.backup-box{border:1px dashed var(--line,rgba(127,127,127,.35));border-radius:14px;padding:10px 14px;display:grid;gap:10px;min-width:0}
+.backup-box summary{cursor:pointer;font-weight:600}

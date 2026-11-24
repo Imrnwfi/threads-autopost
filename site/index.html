@@ -304,15 +304,26 @@
         <h3>🤖 AI</h3>
         <label>Penyedia AI
           <select id="sProvider">
-            <option value="gemini">Google Gemini (ada tier percuma)</option>
-            <option value="anthropic">Anthropic Claude</option>
-            <option value="openai">OpenAI / serasi OpenAI (Groq, OpenRouter…)</option>
+<option value="gemini">Google Gemini (percuma, had kecil)</option>
+            <option value="groq">Groq (percuma, had besar) ⭐</option>
+            <option value="openrouter">OpenRouter (model percuma)</option>
+            <option value="anthropic">Anthropic Claude (berbayar)</option>
+            <option value="openai">OpenAI / serasi OpenAI lain</option>
           </select>
         </label>
         <label>API key <input id="sKey" type="password" autocomplete="off" placeholder="Tampal API key di sini" /></label>
         <p class="muted small" id="keyHelp"></p>
         <label>Model <span class="muted">(kosongkan untuk default)</span><input id="sModel" /></label>
         <label id="baseUrlRow" class="hidden">Base URL <input id="sBaseUrl" placeholder="https://api.openai.com/v1" /></label>
+        <details class="backup-box">
+          <summary>🛟 Kunci sandaran (bila kuota habis)</summary>
+          <p class="muted small">Jika penyedia utama kata "had/kuota habis", app terus guna kunci ini. Cadangan: Gemini sebagai utama + Groq sebagai sandaran.</p>
+          <label>Penyedia sandaran
+            <select id="sBackupProvider"><option value="">— Tiada —</option><option value="gemini">Google Gemini (percuma, had kecil)</option><option value="groq">Groq (percuma, had besar) ⭐</option><option value="openrouter">OpenRouter (model percuma)</option><option value="anthropic">Anthropic Claude (berbayar)</option><option value="openai">OpenAI / serasi OpenAI lain</option></select>
+          </label>
+          <label>API key sandaran <input id="sBackupKey" type="password" autocomplete="off" placeholder="Tampal API key sandaran" /></label>
+          <p class="muted small" id="backupHelp"></p>
+        </details>
         <label>Persona / gaya akaun anda
           <textarea id="sPersona" rows="3" placeholder="cth. Akaun info jimat & barang best untuk anak muda Malaysia. Gaya santai, guna 'korang'."></textarea>
         </label>
