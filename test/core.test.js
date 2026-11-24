@@ -46,6 +46,14 @@ test('guessCategory: singkatan ikut huruf besar & sumber umum perlu 2 isyarat', 
   assert.equal(trends.guessCategory('Bayaran STR fasa 4 bermula, semak status', null, 2), 'tunai');
 });
 
+test('isMalaysianSource: hanya penerbit Malaysia', () => {
+  assert.equal(trends.isMalaysianSource('https://www.hmetro.com.my/x'), true);
+  assert.equal(trends.isMalaysianSource('https://www.malaymail.com/news/x'), true);
+  assert.equal(trends.isMalaysianSource('https://kwsp.gov.my/x'), true);
+  assert.equal(trends.isMalaysianSource('https://inshorts.com/x'), false);
+  assert.equal(trends.isMalaysianSource('https://vnexpress.net/x'), false);
+});
+
 test('isForeign buang berita luar negara', () => {
   assert.equal(trends.isForeign('EPF UPI withdrawals may begin by December | Inshorts'), true);
   assert.equal(trends.isForeign('EPF: Monthly income from Rs 50 lakh at retirement'), true);
