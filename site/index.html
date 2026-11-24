@@ -3,75 +3,175 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f0f10" />
-  <title>Threads Post Generator — Topik Viral Malaysia & Jana Post AI</title>
-  <meta name="description" content="Cari topik viral Malaysia (kewangan, makanan, voucher, bantuan kerajaan, info viral, AI) dan jana post Threads dengan AI. Percuma, terus dalam browser." />
+  <title>Threads Post Generator — Topik Viral, Affiliate Shopee & Bebenang AI</title>
+  <meta name="description" content="Cari topik viral Malaysia, jana ayat affiliate Shopee dan bebenang Threads dengan AI. Percuma, terus dalam browser." />
   <meta property="og:title" content="Threads Post Generator" />
-  <meta property="og:description" content="Cari topik viral Malaysia & jana post Threads dengan AI." />
+  <meta property="og:description" content="Topik viral, ayat affiliate Shopee & bebenang Threads dengan AI." />
   <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#0f0f10" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    // Pasang tema awal untuk elak kelip
+    (function () {
+      try {
+        var t = JSON.parse(localStorage.getItem('tpg_theme') || '"auto"');
+        if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'minimal-light' : 'minimal-dark';
+        document.documentElement.dataset.theme = t;
+      } catch (e) { document.documentElement.dataset.theme = 'minimal-dark'; }
+    })();
+  </script>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">🧵 <span>Threads Post Generator</span></div>
-    <button id="draftPill" class="pill">📝 0 draf</button>
+    <div class="brand"><span class="logo">🧵</span><span>Threads Post Generator</span></div>
+    <div class="top-actions">
+      <button id="themeBtn" class="icon-btn" title="Tukar tema" aria-label="Tukar tema">🎨</button>
+      <button id="draftPill" class="pill">📝 0</button>
+    </div>
   </header>
 
-  <nav class="tabs" id="tabs">
-    <button data-tab="trending" class="active"><span>🔥</span>Trending</button>
-    <button data-tab="jana"><span>✨</span>Jana</button>
-    <button data-tab="draf"><span>📝</span>Draf</button>
-    <button data-tab="tetapan"><span>⚙️</span>Tetapan</button>
-  </nav>
-
   <main>
+    <!-- UTAMA -->
+    <section id="tab-utama" class="tab">
+      <div class="hero">
+        <p class="eyebrow" id="greeting">Selamat datang 👋</p>
+        <h1>Nak tulis apa<br />hari ni?</h1>
+      </div>
+      <div id="setupBanner" class="banner hidden">
+        <span>🔑</span>
+        <div><b>Satu langkah lagi!</b> Masukkan API key AI di <a href="#tetapan" data-goto="tetapan">Tetapan</a> untuk mula jana. Gemini ada tier percuma.</div>
+      </div>
+      <div class="home-grid">
+        <button class="home-card c1" data-goto="trending">
+          <span class="hc-emoji">🔥</span>
+          <span class="hc-title">Topik Viral</span>
+          <span class="hc-desc">Apa yang orang Malaysia sembang sekarang</span>
+        </button>
+        <button class="home-card c2" data-studio="affiliate">
+          <span class="hc-emoji">🛍️</span>
+          <span class="hc-title">Affiliate Shopee</span>
+          <span class="hc-desc">Tampal link, AI tulis ayat jualan</span>
+        </button>
+        <button class="home-card c3" data-studio="thread">
+          <span class="hc-emoji">🧵</span>
+          <span class="hc-title">Tulis Bebenang</span>
+          <span class="hc-desc">Beberapa post bersambung, macam thread</span>
+        </button>
+        <button class="home-card c4" data-studio="topic">
+          <span class="hc-emoji">✍️</span>
+          <span class="hc-title">Topik Sendiri</span>
+          <span class="hc-desc">Tulis tentang apa sahaja</span>
+        </button>
+      </div>
+      <div class="stats" id="stats"></div>
+      <div class="section-head"><h3>🔥 Hangat sekarang</h3><a href="#trending" data-goto="trending" class="link">Lihat semua →</a></div>
+      <div id="homeTrends" class="list"></div>
+    </section>
+
     <!-- TRENDING -->
-    <section id="tab-trending" class="tab">
-      <div id="setupBanner" class="card banner hidden">
-        <b>👋 Selamat datang!</b> Untuk jana post, masukkan API key AI anda dulu di <a href="#tetapan" data-goto="tetapan">Tetapan</a>. Gemini ada tier percuma.
-      </div>
+    <section id="tab-trending" class="tab hidden">
       <div class="section-head">
-        <h2>Topik viral sekarang</h2>
-        <button class="btn" id="refreshTrending">↻</button>
+        <h2>Topik viral</h2>
+        <button class="icon-btn" id="refreshTrending" title="Muat semula">↻</button>
       </div>
-      <div class="chips" id="catChips"></div>
+      <div class="chips scroll-x" id="catChips"></div>
       <p class="muted small" id="trendMeta"></p>
       <div id="trendList" class="list"></div>
     </section>
 
-    <!-- JANA -->
-    <section id="tab-jana" class="tab hidden">
-      <h2>Jana post dengan AI</h2>
-      <form id="genForm" class="card form">
-        <label>Topik
-          <input id="gTopic" required placeholder="cth. STR fasa 4 mula dibayar minggu ini" />
-        </label>
-        <label>Ringkasan / fakta sumber <span class="muted">(pilihan, bantu AI elak reka fakta)</span>
-          <textarea id="gSnippet" rows="3" placeholder="Tampal ringkasan berita atau info penting di sini"></textarea>
-        </label>
-        <div class="row">
-          <label>Kategori <select id="gCategory"></select></label>
-          <label>Nada
-            <select id="gTone">
-              <option value="santai">Santai</option>
-              <option value="informatif">Informatif</option>
-              <option value="lucu">Lucu</option>
-              <option value="formal">Formal</option>
-            </select>
-          </label>
-          <label>Variasi
-            <select id="gCount"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
-          </label>
+    <!-- STUDIO -->
+    <section id="tab-studio" class="tab hidden">
+      <h2>Studio</h2>
+      <form id="genForm" class="form">
+        <div class="seg big" id="modeSeg">
+          <button type="button" data-v="topic" class="active">💡 Topik</button>
+          <button type="button" data-v="affiliate">🛍️ Affiliate</button>
         </div>
-        <label>Arahan tambahan <span class="muted">(pilihan)</span>
-          <input id="gExtra" placeholder="cth. tambah tips jimat, sebut 'link di komen'" />
-        </label>
-        <input type="hidden" id="gSourceUrl" />
-        <input type="hidden" id="gSource" />
-        <button class="btn primary block" type="submit" id="genBtn">✨ Jana post</button>
+
+        <!-- Mod topik -->
+        <div class="card form" id="topicFields">
+          <label>Topik
+            <input id="gTopic" placeholder="cth. STR fasa 4 mula dibayar minggu ini" />
+          </label>
+          <label>Ringkasan / fakta <span class="muted">(pilihan — bantu AI elak reka fakta)</span>
+            <textarea id="gSnippet" rows="3" placeholder="Tampal ringkasan berita atau info penting"></textarea>
+          </label>
+          <label>Kategori <select id="gCategory"></select></label>
+          <input type="hidden" id="gSourceUrl" />
+          <input type="hidden" id="gSource" />
+        </div>
+
+        <!-- Mod affiliate -->
+        <div class="card form hidden" id="affFields">
+          <label>Link produk Shopee
+            <div class="input-row">
+              <input id="pLink" type="url" inputmode="url" placeholder="https://shopee.com.my/..." />
+              <button type="button" class="btn accent" id="autoFillBtn">✨ Isi automatik</button>
+            </div>
+          </label>
+          <p class="muted small" id="autoFillNote">Tekan <b>Isi automatik</b> — AI akan cari nama, harga & kelebihan produk. Anda boleh ubah selepas itu.</p>
+          <label>Nama produk <input id="pName" placeholder="cth. Blender mudah alih 600ml" /></label>
+          <div class="row">
+            <label>Harga <input id="pPrice" placeholder="cth. RM39.90" /></label>
+            <label>Sesuai untuk <input id="pAudience" placeholder="cth. pelajar, ibu bekerja" /></label>
+          </div>
+          <label>Kelebihan / ciri
+            <textarea id="pHighlights" rows="3" placeholder="cth. boleh cas USB, 6 bilah, mudah cuci"></textarea>
+          </label>
+          <div>
+            <span class="field-label">Gaya ayat</span>
+            <div class="chips" id="styleChips"></div>
+          </div>
+          <label class="check"><input type="checkbox" id="pUsed" /> Saya pernah guna produk ni</label>
+          <label class="check"><input type="checkbox" id="pDisclosure" checked /> Tambah #affiliate (telus dengan pengikut)</label>
+        </div>
+
+        <!-- Format -->
+        <div class="card form">
+          <div>
+            <span class="field-label">Format</span>
+            <div class="seg" id="formatSeg">
+              <button type="button" data-v="single" class="active">📄 Satu post</button>
+              <button type="button" data-v="thread">🧵 Bebenang</button>
+            </div>
+          </div>
+          <div id="threadOpts" class="hidden">
+            <div class="stepper-row">
+              <span class="field-label">Bilangan bahagian</span>
+              <div class="stepper">
+                <button type="button" id="partsMinus">−</button>
+                <output id="partsOut">4</output>
+                <button type="button" id="partsPlus">+</button>
+              </div>
+            </div>
+            <label class="check"><input type="checkbox" id="numbering" checked /> Tambah nombor (1/4, 2/4…)</label>
+          </div>
+          <div>
+            <span class="field-label">Nada</span>
+            <div class="chips" id="toneChips"></div>
+          </div>
+          <div class="stepper-row">
+            <span class="field-label">Variasi</span>
+            <div class="stepper">
+              <button type="button" id="countMinus">−</button>
+              <output id="countOut">3</output>
+              <button type="button" id="countPlus">+</button>
+            </div>
+          </div>
+          <details>
+            <summary>Arahan tambahan</summary>
+            <input id="gExtra" placeholder="cth. sebut free shipping, guna loghat utara" />
+          </details>
+        </div>
+
+        <button class="btn primary block xl" type="submit" id="genBtn">✨ Jana sekarang</button>
       </form>
-      <div id="genResults" class="list"></div>
+
+      <div id="genResults"></div>
     </section>
 
     <!-- DRAF -->
@@ -81,20 +181,31 @@
         <button data-s="draft" class="active">Belum post</button>
         <button data-s="posted">Sudah post</button>
       </div>
-      <p class="muted small">Tekan <b>Buka di Threads</b> — Threads dibuka dengan teks siap diisi. Lepas post, tekan <b>Sudah post</b>. Draf disimpan dalam browser ini sahaja.</p>
       <div id="postList" class="list"></div>
     </section>
 
     <!-- TETAPAN -->
     <section id="tab-tetapan" class="tab hidden">
       <h2>Tetapan</h2>
+
+      <div class="card">
+        <h3>🎨 Tema</h3>
+        <div class="theme-grid" id="themeGrid"></div>
+      </div>
+
       <form id="settingsForm" class="card form">
-        <h3>AI</h3>
+        <h3>👤 Profil (untuk pratonton)</h3>
+        <div class="row">
+          <label>Nama paparan <input id="sName" placeholder="Nama Anda" /></label>
+          <label>Username <input id="sUser" placeholder="username" /></label>
+        </div>
+
+        <h3>🤖 AI</h3>
         <label>Penyedia AI
           <select id="sProvider">
             <option value="gemini">Google Gemini (ada tier percuma)</option>
             <option value="anthropic">Anthropic Claude</option>
-            <option value="openai">OpenAI / API serasi OpenAI (Groq, OpenRouter…)</option>
+            <option value="openai">OpenAI / serasi OpenAI (Groq, OpenRouter…)</option>
           </select>
         </label>
         <label>API key
@@ -102,28 +213,47 @@
         </label>
         <p class="muted small" id="keyHelp"></p>
         <label>Model <span class="muted">(kosongkan untuk default)</span>
-          <input id="sModel" placeholder="" />
+          <input id="sModel" />
         </label>
         <label id="baseUrlRow" class="hidden">Base URL
           <input id="sBaseUrl" placeholder="https://api.openai.com/v1" />
         </label>
         <label>Persona / gaya akaun anda
-          <textarea id="sPersona" rows="3" placeholder="cth. Akaun info jimat untuk anak muda Malaysia. Gaya santai, guna 'korang', banyak tips praktikal."></textarea>
+          <textarea id="sPersona" rows="3" placeholder="cth. Akaun info jimat & barang best untuk anak muda Malaysia. Gaya santai, guna 'korang'."></textarea>
         </label>
         <button class="btn primary" type="submit">💾 Simpan</button>
-        <p class="muted small">🔒 API key dan draf disimpan dalam browser anda sahaja (localStorage) dan dihantar terus ke penyedia AI — tidak ke mana-mana pelayan lain. Jangan guna komputer awam.</p>
+        <p class="muted small">🔒 API key & draf disimpan dalam browser ini sahaja dan dihantar terus ke penyedia AI. Jangan guna komputer awam.</p>
       </form>
 
       <div class="card">
-        <h3>Data</h3>
+        <h3>💾 Data</h3>
         <div class="row wrap">
           <button class="btn" id="exportBtn">⬇️ Eksport draf</button>
-          <label class="btn file-btn">⬆️ Import draf<input type="file" id="importInput" accept="application/json" hidden /></label>
-          <button class="btn danger" id="clearBtn">🗑️ Padam semua data</button>
+          <label class="btn">⬆️ Import draf<input type="file" id="importInput" accept="application/json" hidden /></label>
+          <button class="btn danger" id="clearBtn">🗑️ Padam semua</button>
         </div>
       </div>
+      <p class="muted small center">Kod sumber: <a href="https://github.com/Imrnwfi/threads-autopost" target="_blank" rel="noopener">GitHub</a></p>
     </section>
   </main>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="utama" class="active"><span>🏠</span>Utama</button>
+    <button data-tab="trending"><span>🔥</span>Trending</button>
+    <button data-tab="studio" class="fab"><span>✨</span>Studio</button>
+    <button data-tab="draf"><span>📝</span>Draf</button>
+    <button data-tab="tetapan"><span>⚙️</span>Tetapan</button>
+  </nav>
+
+  <!-- Lembaran pilih tema -->
+  <div id="themeSheet" class="sheet hidden" role="dialog" aria-label="Pilih tema">
+    <div class="sheet-backdrop" data-close></div>
+    <div class="sheet-panel">
+      <div class="sheet-handle"></div>
+      <h3>🎨 Pilih tema</h3>
+      <div class="theme-grid" id="themeGridSheet"></div>
+    </div>
+  </div>
 
   <div id="toast" class="toast hidden"></div>
   <script src="app.js" type="module"></script>

@@ -65,3 +65,26 @@ test('matchesCategory buang tajuk tersasar', () => {
   assert.equal(trends.matchesCategory('Dua maut dalam insiden letupan di Hanoi', 'food'), false);
   assert.equal(trends.matchesCategory('Kedai nasi lemak viral di Kuantan', 'food'), true);
 });
+
+test('ai.js: nameFromUrl & extractJson', async () => {
+  const ai = await import('../site/ai.js');
+  assert.equal(ai.nameFromUrl('https://shopee.com.my/Blender-Mudah-Alih-600ml-USB-i.123.456?sp_atk=x'), 'Blender Mudah Alih 600ml USB');
+  assert.equal(ai.nameFromUrl('https://s.shopee.com.my/AbC123'), '');
+  assert.deepEqual(ai.extractJson('```json\n{"a":1}\n```'), { a: 1 });
+});
+
+test('ai.js: generate affiliate letak link dalam komen & #affiliate', async () => {
+  const ai = await import('../site/ai.js');
+  const real = globalThis.fetch;
+  globalThis.fetch = async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ variants: [{ parts: ['Hook', 'Isi', 'Link kat komen 👇'], comment: 'Beli sini: {LINK}' }, { parts: ['Satu'], comment: '' }] }) }] } }] }));
+  try {
+    const v = await ai.generate({ provider: 'gemini', apiKey: 'k' }, {
+      mode: 'affiliate', format: 'thread', parts: 3, count: 2, disclosure: true,
+      product: { link: 'https://shopee.com.my/x-i.1.2', name: 'X' },
+    });
+    assert.equal(v[0].comment, 'Beli sini: https://shopee.com.my/x-i.1.2');
+    assert.match(v[0].parts[2], /#affiliate/);
+    assert.match(v[1].comment, /https:\/\/shopee\.com\.my\/x-i\.1\.2/);
+    assert.ok(!v[0].parts.join(' ').includes('https://'), 'tiada link dalam post');
+  } finally { globalThis.fetch = real; }
+});

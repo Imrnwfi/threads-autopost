@@ -1,30 +1,40 @@
 # 🧵 Threads Post Generator
 
-Laman web untuk **cari topik viral Malaysia** dan **jana post Threads dengan AI**: kewangan, makanan, voucher & promo, bantuan kerajaan, info viral dan info AI.
+Laman web untuk **cari topik viral Malaysia**, **tulis ayat affiliate Shopee** dan **jana bebenang (thread) Threads** dengan AI.
 
 👉 **Buka:** https://imrnwfi.github.io/threads-autopost/
 
 App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (Threads dibuka dengan teks siap diisi), dan post sendiri.
 
-![Skrin trending](docs/screenshot.png)
+<p>
+  <img src="docs/screenshot.png" width="260" alt="Skrin utama" />
+  <img src="docs/bebenang.png" width="260" alt="Pratonton bebenang" />
+</p>
 
 ## Ciri-ciri
 
 | | |
 |---|---|
-| 🔥 **Trending** | Topik viral dari Google Trends (MY) + Google News (BM & English, 48 jam terakhir), dikemas kini **setiap jam** oleh GitHub Actions. Tajuk serupa digabung dan diberi skor ikut bilangan sumber, trafik carian & kebaharuan. |
-| ✨ **Jana post** | AI tulis 1–5 variasi post (< 500 aksara) dengan hook, nada pilihan & persona akaun anda. AI diarah supaya tidak reka fakta. |
-| 📝 **Draf** | Simpan, sunting, salin, atau **Buka di Threads** sekali tekan. Tanda "Sudah post" untuk jejak apa yang dah dikongsi. Eksport/import draf (JSON). |
-| 🤖 **Pilihan AI** | Google Gemini (ada tier percuma), Anthropic Claude, atau mana-mana API serasi OpenAI (OpenAI, Groq, OpenRouter). |
-| 🔒 **Privasi** | Tiada pelayan. API key & draf disimpan dalam browser anda sahaja dan dihantar terus ke penyedia AI. |
+| 🔥 **Topik viral** | Google Trends (MY) + Google News (BM & English), dikemas kini **setiap jam** oleh GitHub Actions. 6 kategori: kewangan, makanan, voucher, bantuan kerajaan, info viral, AI. |
+| 🛍️ **Affiliate Shopee** | Tampal link → **✨ Isi automatik** (AI cari nama, harga & kelebihan produk) → pilih gaya ayat (Wajib ada, Bawah bajet, Masalah→solusi, POV, Senarai, Pendapat jujur, Promo). Link diletak dalam **komen pertama**, dengan pilihan #affiliate. |
+| 🧵 **Bebenang** | 2–8 bahagian bersambung (hook → isi → CTA), penomboran 1/n pilihan, **tulis semula satu bahagian** sahaja. |
+| 👀 **Pratonton macam Threads** | Gambar profil, nama & garis bebenang. Leret untuk tukar variasi. |
+| 🎨 **8 tema** | Ikut peranti, Threads Gelap/Cerah, Kreator Ceria, Studio Pro, Pastel Manis, Neon Malam, Laut Biru. Tekan 🎨 untuk tukar bila-bila masa. |
+| 📝 **Draf** | Simpan, sunting, Belum post / Sudah post, eksport/import JSON. |
+| 🤖 **Pilihan AI** | Google Gemini (ada tier percuma), Anthropic Claude, atau API serasi OpenAI. |
+| 🔒 **Privasi** | Tiada pelayan. API key & draf disimpan dalam browser anda sahaja. |
 
 ## Cara guna
 
 1. Buka laman di atas (Chrome/Safari, telefon atau komputer).
 2. **Tetapan** → pilih penyedia AI → tampal API key → Simpan.
    - Gemini: dapatkan key percuma di [Google AI Studio](https://aistudio.google.com/apikey).
-3. **Trending** → tekan **✨ Jana post** pada topik yang menarik.
-4. Edit jika perlu → **🧵 Buka di Threads** → post → tekan **✓ Sudah post**.
+3. **Topik viral:** tab Trending → **✨ Jana post**.
+   **Affiliate:** Studio → 🛍️ Affiliate → tampal link Shopee → **✨ Isi automatik** → **Jana sekarang**.
+4. Edit jika perlu → **🧵 Buka di Threads** → post.
+   - Bebenang: bahagian 2 dan seterusnya → **Salin** → tampal di "Tambah ke bebenang".
+   - Affiliate: salin **Komen pertama** (ada link) → komen pada post anda.
+5. Tekan **✓ Sudah post**.
 
 ## Cara ia berfungsi
 
@@ -60,7 +70,7 @@ npm test
 ## Struktur projek
 
 ```
-site/                     # Laman web (index.html, app.js, style.css)
+site/                     # Laman web (index.html, app.js, ai.js, style.css)
 lib/trends.js             # Logik cari & skor topik viral
 scripts/fetch-trends.mjs  # Dijalankan oleh GitHub Actions
 .github/workflows/pages.yml
