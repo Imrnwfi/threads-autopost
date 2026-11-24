@@ -46,6 +46,14 @@ test('guessCategory: singkatan ikut huruf besar & sumber umum perlu 2 isyarat', 
   assert.equal(trends.guessCategory('Bayaran STR fasa 4 bermula, semak status', null, 2), 'tunai');
 });
 
+test('isForeign buang berita luar negara', () => {
+  assert.equal(trends.isForeign('EPF UPI withdrawals may begin by December | Inshorts'), true);
+  assert.equal(trends.isForeign('EPF: Monthly income from Rs 50 lakh at retirement'), true);
+  assert.equal(trends.isForeign('REG - Living REIT PLC - Appointment of Director'), true);
+  assert.equal(trends.isForeign('Bursa Malaysia rebounds to snap losing streak'), false);
+  assert.equal(trends.isForeign('Singapore REIT listed on Bursa Malaysia'), false);
+});
+
 test('guessCategory buang topik luar skop & guna sempadan perkataan', () => {
   assert.equal(trends.guessCategory('Resepi nasi lemak viral di Kuantan'), null);
   assert.equal(trends.guessCategory('Pasukan bola sepak menang perlawanan'), null);
