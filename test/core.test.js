@@ -167,3 +167,14 @@ test('ai.js: firstUrl dari teks kongsi Shopee', async () => {
   const ai = await import('../site/js/ai.js');
   assert.equal(ai.firstUrl('Check out Blender Mini for RM29! https://s.shopee.com.my/AbC12.'), 'https://s.shopee.com.my/AbC12');
 });
+
+test('ai.js: parseShareText asingkan link, nama & harga', async () => {
+  const ai = await import('../site/js/ai.js');
+  assert.deepEqual(ai.parseShareText('Check out Blender Mini 600ml for RM29.90. Get it on Shopee now! https://s.shopee.com.my/AbC12'),
+    { link: 'https://s.shopee.com.my/AbC12', name: 'Blender Mini 600ml', price: 'RM29.90' });
+  const m = ai.parseShareText('Lihat Periuk Nasi Elektrik 1.8L dengan harga RM59.00 di Shopee! https://s.shopee.com.my/XyZ9');
+  assert.equal(m.link, 'https://s.shopee.com.my/XyZ9');
+  assert.equal(m.name, 'Periuk Nasi Elektrik 1.8L');
+  assert.equal(m.price, 'RM59.00');
+  assert.deepEqual(ai.parseShareText('https://s.shopee.com.my/AbC12'), { link: 'https://s.shopee.com.my/AbC12', name: '', price: '' });
+});

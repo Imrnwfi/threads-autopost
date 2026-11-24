@@ -497,3 +497,27 @@ ${opts.source ? `Sumber: ${opts.source}` : ''}`;
     webSkipped,
   };
 }
+
+/**
+ * Pecahkan teks kongsi Shopee kepada { link, name, price }.
+ * cth. "Check out Blender Mini 600ml for RM29.90. Get it on Shopee now! https://s.shopee.com.my/AbC12"
+ *      "Lihat Blender Mini dengan harga RM29.90 di Shopee! https://s.shopee.com.my/AbC12"
+ */
+export function parseShareText(text = '') {
+  const raw = String(text).trim();
+  const link = firstUrl(raw);
+  const priceM = raw.match(/RM\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?-\s?RM\s?\d[\d,]*(?:\.\d{1,2})?)?/i);
+  let name = raw
+    .replace(/https?:\/\/\S+/g, ' ')
+    .replace(/RM\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?-\s?RM\s?\d[\d,]*(?:\.\d{1,2})?)?/gi, ' ')
+    .replace(/\b(check out|lihat|semak|dapatkan|get it|buy|beli)\b/gi, ' ')
+    .replace(/\b(on|di|from|dari)\s+shopee\b.*$/i, ' ')
+    .replace(/\b(for|dengan harga|pada harga|only|hanya|now|sekarang)\b/gi, ' ')
+    .replace(/\bshopee\b/gi, ' ')
+    .replace(/[!|]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s.,:;–-]+|[\s.,:;–-]+$/g, '')
+    .trim();
+  if (name.length < 3) name = '';
+  return { link, name: name.slice(0, 120), price: priceM ? priceM[0].replace(/\s+/g, '') : '' };
+}

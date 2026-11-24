@@ -1,7 +1,7 @@
 // Threads Post Generator — aplikasi utama
 import {
   MAX_CHARS, MAX_MULTI, TONES, LANGS, AFF_STYLES, QUICK_TRANSFORMS, len, nameFromUrl, firstUrl,
-  generate, regeneratePart, researchProduct, transform, scoreHook, generateInfo, webLimited, markWebLimited,
+  generate, regeneratePart, researchProduct, transform, scoreHook, generateInfo, webLimited, markWebLimited, parseShareText,
 } from './ai.js';
 import { mountInfoEditor, openInfoSheet } from './infocard.js';
 import { state, save, touch, removeFrom, restore, get, set, onChange } from './store.js';
@@ -541,18 +541,40 @@ export function fillProduct(p) {
   $('#pHighlights').value = p.highlights || '';
   $('#pAudience').value = p.audience || '';
 }
-$('#pLink').addEventListener('change', () => {
+// Tampal teks kongsi penuh dari Shopee → asingkan link, nama & harga
+function smartLink() {
+  const v = $('#pLink').value.trim();
+  if (!v) return;
+  const p = parseShareText(v);
+  if (p.link && p.link !== v) {
+    $('#pLink').value = p.link;
+    if (p.name && !$('#pName').value) $('#pName').value = p.name;
+    if (p.price && !$('#pPrice').value) $('#pPrice').value = p.price;
+    if (p.name || p.price) toast('✂️ Link, nama & harga diasingkan');
+  }
   const guess = nameFromUrl($('#pLink').value.trim());
   if (guess && !$('#pName').value) $('#pName').value = guess;
-});
-async function autoFill(btn, link, hint, apply, noteEl) {
+  const short = /s\.shopee\.|shp\.ee|shope\.ee/i.test($('#pLink').value);
+  $('#autoFillNote').innerHTML = short && !$('#pName').value
+    ? '🔗 Link pendek tiada nama produk. <b>Taip nama produk</b> di bawah (atau tampal teks kongsi penuh dari Shopee), kemudian tekan <b>Isi automatik</b> untuk cadangan kelebihan.'
+    : 'Tekan <b>Isi automatik</b> — AI cari nama, harga & kelebihan produk.';
+}
+$('#pLink').addEventListener('change', smartLink);
+$('#pLink').addEventListener('paste', () => setTimeout(smartLink, 0));
+async function autoFill(btn, link, hint, apply, noteEl, onEmpty) {
   return busy(btn, async () => {
     if (!/^https?:\/\/\S+$/i.test(link)) throw new Error('Tampal link produk yang sah dulu (bermula https://).');
     if (noteEl) noteEl.textContent = '🔎 AI sedang cari maklumat produk… (10–30 saat)';
     const info = await researchProduct(S(), link, hint);
     apply(info);
     if (noteEl) noteEl.textContent = `${info.found ? '✅' : '⚠️'} ${info.note}`;
-    toast(info.found ? '✨ Maklumat produk diisi' : 'Sebahagian maklumat diisi — sila semak', !info.found && !info.name);
+    if (info.found) toast('✨ Maklumat produk diisi');
+    else if (info.name) toast('Cadangan diisi berdasarkan nama produk — sila semak');
+    else {
+      toast('Produk tak dapat dikenal pasti — taip nama produk dulu', true);
+      if (noteEl) noteEl.innerHTML = '⚠️ Tak dapat kenal pasti produk daripada link ini. <b>Taip nama produk</b> (atau tampal teks kongsi penuh dari Shopee), kemudian tekan <b>Isi automatik</b> semula.';
+      onEmpty?.();
+    }
   }, 'Mencari…');
 }
 $('#autoFillBtn').addEventListener('click', (e) => autoFill(e.currentTarget, $('#pLink').value.trim(), $('#pName').value.trim(), (info) => {
@@ -560,7 +582,7 @@ $('#autoFillBtn').addEventListener('click', (e) => autoFill(e.currentTarget, $('
   if (info.price) $('#pPrice').value = info.price;
   if (info.highlights) $('#pHighlights').value = info.highlights;
   if (info.audience) $('#pAudience').value = info.audience;
-}, $('#autoFillNote')));
+}, $('#autoFillNote'), () => { $('#pName').focus(); $('#pName').scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
 
 export function upsertProduct(p) {
   if (!p.link) return null;
@@ -1327,7 +1349,8 @@ function handleShare() {
   const link = q.get('url') || firstUrl(text);
   history.replaceState(null, '', location.pathname + '#studio');
   if (!link) { toast('Tiada link dalam kongsian', true); return false; }
-  const hint = text.replace(link, '').replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  const parsed = parseShareText(text);
+  const hint = parsed.name;
   if (studio.mode === 'affiliate' && studio.multi) {
     multiProducts = [...multiProducts.filter((p) => p.link || p.name), { link, name: nameFromUrl(link) || hint, price: '', highlights: '' }].slice(0, MAX_MULTI);
     saveMulti();
@@ -1336,7 +1359,7 @@ function handleShare() {
     toast('🛒 Produk ditambah ke senarai');
     return true;
   }
-  applyPreset({ mode: 'affiliate', multi: false, product: { link, name: nameFromUrl(link) || '' } });
+  applyPreset({ mode: 'affiliate', multi: false, product: { link, name: nameFromUrl(link) || hint || '', price: parsed.price || '' } });
   openTab('studio');
   if (S().apiKey) $('#autoFillBtn').click();
   else if (hint) $('#pName').value = hint;
