@@ -14,7 +14,7 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
 ## Ciri-ciri
 
 ### ✍️ Menulis
-- **Jana post / bebenang** (2–8 bahagian) dengan nada, bahasa & loghat (BM, baku, English, Manglish, Utara, Kelantan, Sabah, Sarawak).
+- **Jana post / bebenang** (2–8 bahagian) dalam **Bahasa Melayu** — santai, baku atau loghat (Utara, Kelantan, Sabah, Sarawak).
 - **Skor hook** 1–10 dengan tips & 3 hook alternatif.
 - **Gaya tulisan saya** — tampal post lama, AI analisis & tiru gaya anda.
 - **Bank hook** — 50+ templat ayat pembuka ikut kategori.
@@ -37,7 +37,7 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
 | 🏛️ **Bantuan Kerajaan** | 💵 Bantuan Tunai (STR, SARA) · ⛽ Subsidi (BUDI95) · 🎓 Pendidikan & Belia · 📜 Belanjawan & Program |
 | 📲 **E-Wallet** | 🎁 Promo & Cashback · 🆓 Duit & Topup Percuma · 💳 Tips & Berita E-Wallet · 🚨 Amaran Penipuan |
 
-Topik di luar kategori ini ditapis keluar secara automatik.
+Hanya berita **Bahasa Melayu** daripada media Malaysia; topik di luar kategori ini ditapis keluar secara automatik.
 
 ### 🖼️ Kad Info
 - Maklumat ringkas versi gambar: tajuk, angka penting, 3–5 poin, nota & sumber.

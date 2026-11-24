@@ -423,6 +423,7 @@ export function startSlot(slot) {
 // =========================================================
 const DEFAULT_STUDIO = { mode: 'topic', multi: false, format: 'single', parts: 4, count: 3, tone: 'santai', lang: 'ms', style: 'wajib', numbering: true, disclosure: true, hook: '', useStyle: false };
 const studio = { ...DEFAULT_STUDIO, ...get('studio', {}) };
+if (!LANGS[studio.lang]) studio.lang = 'ms'; // hanya Bahasa Melayu & loghat
 const saveStudio = () => set('studio', studio);
 let multiProducts = get('multiDraft', []);
 const saveMulti = () => set('multiDraft', multiProducts);

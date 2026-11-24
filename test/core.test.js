@@ -54,6 +54,15 @@ test('isMalaysianSource: hanya penerbit Malaysia', () => {
   assert.equal(trends.isMalaysianSource('https://vnexpress.net/x'), false);
 });
 
+test('isMalay: hanya tajuk Bahasa Melayu', () => {
+  assert.equal(trends.isMalay('Bayaran STR Fasa 4 dikreditkan mulai esok'), true);
+  assert.equal(trends.isMalay('Bursa Malaysia Kekal Tinggi Pada Tengah Hari'), true);
+  assert.equal(trends.isMalay("MAE Tabung Daily Bonus Sudah Kembali"), true);
+  assert.equal(trends.isMalay('Bursa Malaysia rebounds to snap five-day losing streak'), false);
+  assert.equal(trends.isMalay('LHDN targets net direct tax collection of RM199bil for 2027'), false);
+  assert.equal(trends.isMalay('PayerMax, ShopeePay to expand partnership in digital payments'), false);
+});
+
 test('isForeign buang berita luar negara', () => {
   assert.equal(trends.isForeign('EPF UPI withdrawals may begin by December | Inshorts'), true);
   assert.equal(trends.isForeign('EPF: Monthly income from Rs 50 lakh at retirement'), true);

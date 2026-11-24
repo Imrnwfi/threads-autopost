@@ -16,10 +16,8 @@ export const TONES = {
 };
 
 export const LANGS = {
-  ms: { label: '🇲🇾 Melayu', desc: 'Bahasa Melayu harian Malaysia (boleh campur sikit English macam orang Malaysia biasa)' },
+  ms: { label: '🇲🇾 Melayu', desc: 'Bahasa Melayu harian Malaysia yang santai dan mudah faham. Elak ayat bahasa Inggeris; hanya istilah biasa (nama app, produk, cashback) boleh dikekalkan' },
   baku: { label: '📘 BM baku', desc: 'Bahasa Melayu baku/standard yang betul tatabahasanya' },
-  en: { label: '🇬🇧 English', desc: 'English, natural for a Malaysian audience' },
-  manglish: { label: '🍛 Manglish', desc: 'Manglish — campuran BM & English gaya orang Malaysia (lah, meh, wei, bro, confirm, sure ah)' },
   utara: { label: '🌾 Utara', desc: 'loghat Utara (Kedah/Penang/Perlis), cth. "hang", "pi", "awat", "cek", "habaq"' },
   kelantan: { label: '🪁 Kelantan', desc: 'loghat Kelantan, cth. "demo", "gapo", "kito", "sokmo", "molek"' },
   sabah: { label: '🏔️ Sabah', desc: 'bahasa/loghat Sabah, cth. "bah", "kunun", "sia", "ko", "palui"' },
