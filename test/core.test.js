@@ -75,6 +75,7 @@ test('guessCategory buang topik luar skop & guna sempadan perkataan', () => {
   assert.equal(trends.guessCategory('Resepi nasi lemak viral di Kuantan'), null);
   assert.equal(trends.guessCategory('Pasukan bola sepak menang perlawanan'), null);
   assert.equal(trends.guessCategory('Strategi industri automotif'), null);
+  assert.equal(trends.guessCategory('Amaran hujan berterusan di Kelantan, Terengganu hingga Jumaat'), null);
   assert.equal(trends.guessCategory('Cara semak status STR'), 'tunai');
 });
 
