@@ -1,0 +1,6 @@
+# Konfigurasi Cloudflare Worker "shopee-reader" (Pembaca link Shopee).
+# Cloudflare → Workers & Pages → Create → Connect GitHub → repo threads-autopost → Root directory: worker
+name = "shopee-reader"
+main = "shopee-reader.js"
+compatibility_date = "2026-11-01"
+workers_dev = true

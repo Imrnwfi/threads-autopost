@@ -16,6 +16,7 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
 Supaya app boleh **baca terus** nama, harga & penerangan produk daripada link Shopee (termasuk link pendek `s.shopee.com.my`), pasang pembaca link percuma di Cloudflare (±5 minit, sekali sahaja):
 
 1. Daftar / log masuk di [dash.cloudflare.com](https://dash.cloudflare.com) (percuma).
+   - **Cara paling mudah (tanpa salin kod):** **Workers & Pages → Create → Connect GitHub** → pilih repo `threads-autopost` → nama projek `shopee-reader` → *Advanced settings* → **Root directory: `worker`** → **Deploy**. Kemudian terus ke langkah 4.
 2. **Workers & Pages → Create → Create Worker** → beri nama, cth. `shopee-reader` → **Deploy**.
 3. Tekan **Edit code**, padam semua kod contoh, tampal isi fail [`worker/shopee-reader.js`](worker/shopee-reader.js) → **Deploy**.
 4. Salin URL worker (cth. `https://shopee-reader.nama-anda.workers.dev`).
