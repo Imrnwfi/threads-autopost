@@ -67,18 +67,18 @@ test('matchesCategory buang tajuk tersasar', () => {
 });
 
 test('ai.js: nameFromUrl & extractJson', async () => {
-  const ai = await import('../site/ai.js');
+  const ai = await import('../site/js/ai.js');
   assert.equal(ai.nameFromUrl('https://shopee.com.my/Blender-Mudah-Alih-600ml-USB-i.123.456?sp_atk=x'), 'Blender Mudah Alih 600ml USB');
   assert.equal(ai.nameFromUrl('https://s.shopee.com.my/AbC123'), '');
   assert.deepEqual(ai.extractJson('```json\n{"a":1}\n```'), { a: 1 });
 });
 
 test('ai.js: generate affiliate letak link dalam komen & #affiliate', async () => {
-  const ai = await import('../site/ai.js');
+  const ai = await import('../site/js/ai.js');
   const real = globalThis.fetch;
   globalThis.fetch = async () => new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ variants: [{ parts: ['Hook', 'Isi', 'Link kat komen 👇'], comment: 'Beli sini: {LINK}' }, { parts: ['Satu'], comment: '' }] }) }] } }] }));
   try {
-    const v = await ai.generate({ provider: 'gemini', apiKey: 'k' }, {
+    const { variants: v } = await ai.generate({ provider: 'gemini', apiKey: 'k' }, {
       mode: 'affiliate', format: 'thread', parts: 3, count: 2, disclosure: true,
       product: { link: 'https://shopee.com.my/x-i.1.2', name: 'X' },
     });
@@ -87,4 +87,39 @@ test('ai.js: generate affiliate letak link dalam komen & #affiliate', async () =
     assert.match(v[1].comment, /https:\/\/shopee\.com\.my\/x-i\.1\.2/);
     assert.ok(!v[0].parts.join(' ').includes('https://'), 'tiada link dalam post');
   } finally { globalThis.fetch = real; }
+});
+
+test('markVelocity tanda topik baru & naik', async () => {
+  const now = Date.parse('2026-11-24T10:00:00Z');
+  const items = [
+    { title: 'Topik lama naik mendadak hari ini', score: 90, sources: ['a', 'b'], published: '2026-11-24T08:00:00Z' },
+    { title: 'Topik baharu muncul dengan banyak sumber', score: 60, sources: ['a', 'b', 'c'], published: '2026-11-24T09:30:00Z' },
+    { title: 'Topik biasa sahaja', score: 20, sources: ['a'], published: '2026-11-23T09:30:00Z' },
+  ];
+  const prev = [
+    { title: 'Topik lama naik mendadak hari ini', score: 50, first_seen: '2026-11-24T02:00:00Z' },
+    { title: 'Topik biasa sahaja', score: 20, first_seen: '2026-11-23T10:00:00Z' },
+  ];
+  trends.markVelocity(items, prev, now);
+  assert.equal(items[0].rising, true);
+  assert.equal(items[0].meletup, true);
+  assert.equal(items[1].meletup, true);
+  assert.equal(items[2].meletup, false);
+  assert.equal(items[2].first_seen, '2026-11-23T10:00:00Z');
+});
+
+test('data.js: acara jualan & cuti', async () => {
+  const d = await import('../site/js/data.js');
+  const ev = d.upcomingEvents(new Date(2026, 10, 24), 40);
+  const names = ev.map((e) => e.name);
+  assert.ok(names.includes('Black Friday'));
+  assert.equal(ev.find((e) => e.name === 'Black Friday').date, '2026-11-27');
+  assert.ok(names.includes('12.12 Sale'));
+  assert.ok(names.includes('Krismas'));
+  assert.equal(d.daysUntil('2026-12-12', new Date(2026, 10, 24)), 18);
+});
+
+test('ai.js: firstUrl dari teks kongsi Shopee', async () => {
+  const ai = await import('../site/js/ai.js');
+  assert.equal(ai.firstUrl('Check out Blender Mini for RM29! https://s.shopee.com.my/AbC12.'), 'https://s.shopee.com.my/AbC12');
 });

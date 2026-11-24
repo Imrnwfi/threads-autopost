@@ -4,22 +4,27 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Threads Post Generator — Topik Viral, Affiliate Shopee & Bebenang AI</title>
-  <meta name="description" content="Cari topik viral Malaysia, jana ayat affiliate Shopee dan bebenang Threads dengan AI. Percuma, terus dalam browser." />
+  <meta name="description" content="Cari topik viral Malaysia, jana ayat affiliate Shopee dan bebenang Threads dengan AI. Kalendar kandungan, penjejak komisen & kad gambar. Percuma." />
   <meta property="og:title" content="Threads Post Generator" />
   <meta property="og:description" content="Topik viral, ayat affiliate Shopee & bebenang Threads dengan AI." />
   <meta property="og:type" content="website" />
-  <meta name="theme-color" content="#0f0f10" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧵</text></svg>" />
+  <meta name="theme-color" content="#0b0b0c" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Threads Gen" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <script>
-    // Pasang tema awal untuk elak kelip
     (function () {
       try {
         var t = JSON.parse(localStorage.getItem('tpg_theme') || '"auto"');
         if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'minimal-light' : 'minimal-dark';
         document.documentElement.dataset.theme = t;
+        var z = JSON.parse(localStorage.getItem('tpg_fontScale') || '1');
+        document.documentElement.style.setProperty('--ui-zoom', z);
       } catch (e) { document.documentElement.dataset.theme = 'minimal-dark'; }
     })();
   </script>
@@ -29,14 +34,15 @@
   <header class="topbar">
     <div class="brand"><span class="logo">🧵</span><span>Threads Post Generator</span></div>
     <div class="top-actions">
-      <button id="themeBtn" class="icon-btn" title="Tukar tema" aria-label="Tukar tema">🎨</button>
-      <button id="draftPill" class="pill">📝 0</button>
+      <button id="syncBtn" class="icon-btn hidden" title="Sync Google Drive" aria-label="Sync"><span data-icon="cloud"></span></button>
+      <button id="themeBtn" class="icon-btn" title="Tukar tema" aria-label="Tukar tema"><span data-icon="palette"></span></button>
+      <button id="draftPill" class="pill"><span data-icon="notes" data-size="16"></span><b id="draftCount">0</b></button>
     </div>
   </header>
 
   <main>
-    <!-- UTAMA -->
-    <section id="tab-utama" class="tab">
+    <!-- ===================== UTAMA ===================== -->
+    <section id="page-utama" class="page">
       <div class="hero">
         <p class="eyebrow" id="greeting">Selamat datang 👋</p>
         <h1>Nak tulis apa<br />hari ni?</h1>
@@ -45,55 +51,56 @@
         <span>🔑</span>
         <div><b>Satu langkah lagi!</b> Masukkan API key AI di <a href="#tetapan" data-goto="tetapan">Tetapan</a> untuk mula jana. Gemini ada tier percuma.</div>
       </div>
-      <div class="home-grid">
-        <button class="home-card c1" data-goto="trending">
-          <span class="hc-emoji">🔥</span>
-          <span class="hc-title">Topik Viral</span>
-          <span class="hc-desc">Apa yang orang Malaysia sembang sekarang</span>
-        </button>
-        <button class="home-card c2" data-studio="affiliate">
-          <span class="hc-emoji">🛍️</span>
-          <span class="hc-title">Affiliate Shopee</span>
-          <span class="hc-desc">Tampal link, AI tulis ayat jualan</span>
-        </button>
-        <button class="home-card c3" data-studio="thread">
-          <span class="hc-emoji">🧵</span>
-          <span class="hc-title">Tulis Bebenang</span>
-          <span class="hc-desc">Beberapa post bersambung, macam thread</span>
-        </button>
-        <button class="home-card c4" data-studio="topic">
-          <span class="hc-emoji">✍️</span>
-          <span class="hc-title">Topik Sendiri</span>
-          <span class="hc-desc">Tulis tentang apa sahaja</span>
-        </button>
+      <div id="installBanner" class="banner info hidden">
+        <span>📲</span>
+        <div><b>Pasang sebagai app</b> — buka terus dari skrin utama & kongsi link Shopee terus ke sini.
+          <div class="row" style="margin-top:8px"><button class="btn sm primary" data-install>Pasang</button><button class="btn sm" data-dismiss-install>Nanti</button></div></div>
       </div>
+
+      <div id="todayCard"></div>
+
+      <div class="home-grid">
+        <button class="home-card c1" data-goto="trending"><span class="hc-ic" data-icon="flame" data-size="26"></span><span class="hc-title">Topik Viral</span><span class="hc-desc">Apa yang orang Malaysia sembang sekarang</span></button>
+        <button class="home-card c2" data-preset='{"mode":"affiliate","multi":false}'><span class="hc-ic" data-icon="bag" data-size="26"></span><span class="hc-title">Affiliate</span><span class="hc-desc">Tampal link Shopee, AI tulis ayat jualan</span></button>
+        <button class="home-card c3" data-preset='{"mode":"affiliate","multi":true}'><span class="hc-ic" data-icon="cart" data-size="26"></span><span class="hc-title">Senarai Produk</span><span class="hc-desc">Banyak produk dalam satu bebenang</span></button>
+        <button class="home-card c4" data-preset='{"mode":"topic","format":"thread"}'><span class="hc-ic" data-icon="list" data-size="26"></span><span class="hc-title">Bebenang</span><span class="hc-desc">Beberapa post bersambung</span></button>
+      </div>
+
+      <div id="nextEvent"></div>
+      <div id="streakCard"></div>
       <div class="stats" id="stats"></div>
+
+      <div id="homeMeletup"></div>
       <div class="section-head"><h3>🔥 Hangat sekarang</h3><a href="#trending" data-goto="trending" class="link">Lihat semua →</a></div>
       <div id="homeTrends" class="list"></div>
     </section>
 
-    <!-- TRENDING -->
-    <section id="tab-trending" class="tab hidden">
+    <!-- ===================== TRENDING ===================== -->
+    <section id="page-trending" class="page hidden">
       <div class="section-head">
         <h2>Topik viral</h2>
         <button class="icon-btn" id="refreshTrending" title="Muat semula">↻</button>
       </div>
       <div class="chips scroll-x" id="catChips"></div>
+      <div class="chips scroll-x small-chips" id="srcChips"></div>
       <p class="muted small" id="trendMeta"></p>
       <div id="trendList" class="list"></div>
     </section>
 
-    <!-- STUDIO -->
-    <section id="tab-studio" class="tab hidden">
+    <!-- ===================== STUDIO ===================== -->
+    <section id="page-studio" class="page hidden">
       <h2>Studio</h2>
-      <form id="genForm" class="form">
+      <form id="genForm" class="form" novalidate>
         <div class="seg big" id="modeSeg">
           <button type="button" data-v="topic" class="active">💡 Topik</button>
           <button type="button" data-v="affiliate">🛍️ Affiliate</button>
         </div>
 
-        <!-- Mod topik -->
+        <!-- Topik -->
         <div class="card form" id="topicFields">
+          <label>📚 Siri <span class="muted">(pilihan)</span>
+            <select id="gSeries"></select>
+          </label>
           <label>Topik
             <input id="gTopic" placeholder="cth. STR fasa 4 mula dibayar minggu ini" />
           </label>
@@ -105,23 +112,47 @@
           <input type="hidden" id="gSource" />
         </div>
 
-        <!-- Mod affiliate -->
+        <!-- Affiliate -->
         <div class="card form hidden" id="affFields">
-          <label>Link produk Shopee
-            <div class="input-row">
-              <input id="pLink" type="url" inputmode="url" placeholder="https://shopee.com.my/..." />
-              <button type="button" class="btn accent" id="autoFillBtn">✨ Isi automatik</button>
-            </div>
-          </label>
-          <p class="muted small" id="autoFillNote">Tekan <b>Isi automatik</b> — AI akan cari nama, harga & kelebihan produk. Anda boleh ubah selepas itu.</p>
-          <label>Nama produk <input id="pName" placeholder="cth. Blender mudah alih 600ml" /></label>
-          <div class="row">
-            <label>Harga <input id="pPrice" placeholder="cth. RM39.90" /></label>
-            <label>Sesuai untuk <input id="pAudience" placeholder="cth. pelajar, ibu bekerja" /></label>
+          <div class="seg" id="affSeg">
+            <button type="button" data-v="single" class="active">1 produk</button>
+            <button type="button" data-v="multi">🛒 Banyak produk</button>
           </div>
-          <label>Kelebihan / ciri
-            <textarea id="pHighlights" rows="3" placeholder="cth. boleh cas USB, 6 bilah, mudah cuci"></textarea>
-          </label>
+
+          <div id="singleProduct" class="form">
+            <label>Link produk Shopee
+              <div class="input-row">
+                <input id="pLink" type="url" inputmode="url" placeholder="https://shopee.com.my/..." />
+                <button type="button" class="btn accent" id="autoFillBtn">✨ Isi automatik</button>
+              </div>
+            </label>
+            <p class="muted small" id="autoFillNote">Tekan <b>Isi automatik</b> — AI cari nama, harga & kelebihan produk.</p>
+            <label>Nama produk <input id="pName" placeholder="cth. Blender mudah alih 600ml" /></label>
+            <div class="row">
+              <label>Harga <input id="pPrice" placeholder="cth. RM39.90" /></label>
+              <label>Sesuai untuk <input id="pAudience" placeholder="cth. pelajar" /></label>
+            </div>
+            <label>Kelebihan / ciri
+              <textarea id="pHighlights" rows="3" placeholder="cth. boleh cas USB, 6 bilah, mudah cuci"></textarea>
+            </label>
+            <div class="row wrap">
+              <button type="button" class="btn sm" id="pickProductBtn">📦 Pilih dari simpanan</button>
+              <button type="button" class="btn sm" id="saveProductBtn">💾 Simpan produk</button>
+            </div>
+          </div>
+
+          <div id="multiProducts" class="form hidden">
+            <label>Tema senarai <span class="muted">(pilihan)</span>
+              <input id="mTheme" placeholder="cth. 5 barang dapur bawah RM30" />
+            </label>
+            <div id="multiList" class="list"></div>
+            <div class="row wrap">
+              <button type="button" class="btn sm" id="addMultiBtn">➕ Tambah produk</button>
+              <button type="button" class="btn sm" id="pickMultiBtn">📦 Dari simpanan</button>
+            </div>
+            <p class="muted small">Maksimum 6 produk. Bebenang = pembuka + 1 bahagian setiap produk + penutup. Semua link masuk dalam komen.</p>
+          </div>
+
           <div>
             <span class="field-label">Gaya ayat</span>
             <div class="chips" id="styleChips"></div>
@@ -130,9 +161,9 @@
           <label class="check"><input type="checkbox" id="pDisclosure" checked /> Tambah #affiliate (telus dengan pengikut)</label>
         </div>
 
-        <!-- Format -->
+        <!-- Format & gaya -->
         <div class="card form">
-          <div>
+          <div id="formatBox">
             <span class="field-label">Format</span>
             <div class="seg" id="formatSeg">
               <button type="button" data-v="single" class="active">📄 Satu post</button>
@@ -142,26 +173,21 @@
           <div id="threadOpts" class="hidden">
             <div class="stepper-row">
               <span class="field-label">Bilangan bahagian</span>
-              <div class="stepper">
-                <button type="button" id="partsMinus">−</button>
-                <output id="partsOut">4</output>
-                <button type="button" id="partsPlus">+</button>
-              </div>
+              <div class="stepper"><button type="button" id="partsMinus">−</button><output id="partsOut">4</output><button type="button" id="partsPlus">+</button></div>
             </div>
-            <label class="check"><input type="checkbox" id="numbering" checked /> Tambah nombor (1/4, 2/4…)</label>
+            <label class="check"><input type="checkbox" id="numbering" checked /> <span id="numberingLabel">Tambah nombor (1/4, 2/4…)</span></label>
           </div>
+          <div><span class="field-label">Nada</span><div class="chips" id="toneChips"></div></div>
+          <div><span class="field-label">Bahasa</span><div class="chips scroll-x" id="langChips"></div></div>
           <div>
-            <span class="field-label">Nada</span>
-            <div class="chips" id="toneChips"></div>
+            <span class="field-label">Hook</span>
+            <div class="row wrap" id="hookRow"></div>
           </div>
           <div class="stepper-row">
             <span class="field-label">Variasi</span>
-            <div class="stepper">
-              <button type="button" id="countMinus">−</button>
-              <output id="countOut">3</output>
-              <button type="button" id="countPlus">+</button>
-            </div>
+            <div class="stepper"><button type="button" id="countMinus">−</button><output id="countOut">3</output><button type="button" id="countPlus">+</button></div>
           </div>
+          <label class="check" id="styleToggleRow"><input type="checkbox" id="useStyle" /> ✍️ Guna gaya tulisan saya</label>
           <details>
             <summary>Arahan tambahan</summary>
             <input id="gExtra" placeholder="cth. sebut free shipping, guna loghat utara" />
@@ -170,27 +196,97 @@
 
         <button class="btn primary block xl" type="submit" id="genBtn">✨ Jana sekarang</button>
       </form>
-
       <div id="genResults"></div>
     </section>
 
-    <!-- DRAF -->
-    <section id="tab-draf" class="tab hidden">
+    <!-- ===================== DRAF ===================== -->
+    <section id="page-draf" class="page hidden">
       <h2>Draf saya</h2>
-      <div class="seg" id="postFilter">
+      <div class="search"><span data-icon="search" data-size="18"></span><input id="draftSearch" type="search" placeholder="Cari draf…" /></div>
+      <div class="chips scroll-x small-chips" id="draftChips"></div>
+      <div class="seg" id="postFilter" style="margin-top:10px">
         <button data-s="draft" class="active">Belum post</button>
+        <button data-s="scheduled">📅 Dijadual</button>
         <button data-s="posted">Sudah post</button>
       </div>
+      <p class="muted small swipe-tip">💡 Leret draf ke <b>kiri</b> untuk padam, ke <b>kanan</b> untuk tanda sudah post.</p>
       <div id="postList" class="list"></div>
     </section>
 
-    <!-- TETAPAN -->
-    <section id="tab-tetapan" class="tab hidden">
-      <h2>Tetapan</h2>
+    <!-- ===================== LAGI ===================== -->
+    <section id="page-lagi" class="page hidden">
+      <h2>Lagi</h2>
+      <div class="hub-grid">
+        <button class="hub" data-goto="kalendar"><span class="hub-ic" data-icon="calendar" data-size="24"></span><b>Kalendar</b><small>Pelan mingguan & musim jualan</small></button>
+        <button class="hub" data-goto="produk"><span class="hub-ic" data-icon="package" data-size="24"></span><b>Produk & Komisen</b><small>Simpanan produk & prestasi</small></button>
+        <button class="hub" data-goto="siri"><span class="hub-ic" data-icon="layers" data-size="24"></span><b>Siri</b><small>Kandungan bersiri #1, #2…</small></button>
+        <button class="hub" data-goto="insight"><span class="hub-ic" data-icon="chart" data-size="24"></span><b>Insight</b><small>Masa terbaik untuk post</small></button>
+        <button class="hub" data-goto="hook"><span class="hub-ic" data-icon="anchor" data-size="24"></span><b>Bank Hook</b><small>Templat ayat pembuka</small></button>
+        <button class="hub" data-goto="tetapan"><span class="hub-ic" data-icon="sliders" data-size="24"></span><b>Tetapan</b><small>AI, tema, gaya, sync</small></button>
+        <button class="hub hidden" id="installTile" data-install><span class="hub-ic" data-icon="download" data-size="24"></span><b>Pasang app</b><small>Ikon di skrin utama</small></button>
+      </div>
+    </section>
 
-      <div class="card">
-        <h3>🎨 Tema</h3>
-        <div class="theme-grid" id="themeGrid"></div>
+    <!-- ===================== KALENDAR ===================== -->
+    <section id="page-kalendar" class="page hidden">
+      <div class="section-head"><h2>🗓️ Kalendar</h2><button class="btn sm" id="editPlanBtn">✏️ Edit pelan</button></div>
+      <div id="weekStrip" class="week"></div>
+      <div class="section-head"><h3>🛒 Musim jualan & perayaan</h3></div>
+      <div id="eventList" class="list"></div>
+      <p class="muted small">* Tarikh perayaan tertakluk kepada pengumuman rasmi.</p>
+    </section>
+
+    <!-- ===================== PRODUK ===================== -->
+    <section id="page-produk" class="page hidden">
+      <div class="section-head"><h2>📦 Produk & Komisen</h2><button class="btn sm primary" id="addProductBtn">➕ Produk</button></div>
+      <div id="productTotals" class="stats"></div>
+      <div class="seg" id="productSort">
+        <button data-s="komisen" class="active">💰 Komisen</button>
+        <button data-s="klik">👆 Klik</button>
+        <button data-s="baru">🆕 Terbaru</button>
+      </div>
+      <div id="productList" class="list"></div>
+      <p class="muted small">Masukkan klik, jualan & komisen dari laporan Shopee Affiliate anda untuk lihat produk mana paling laku.</p>
+    </section>
+
+    <!-- ===================== SIRI ===================== -->
+    <section id="page-siri" class="page hidden">
+      <div class="section-head"><h2>📚 Siri kandungan</h2><button class="btn sm primary" id="addSeriesBtn">➕ Siri</button></div>
+      <div id="seriesList" class="list"></div>
+    </section>
+
+    <!-- ===================== INSIGHT ===================== -->
+    <section id="page-insight" class="page hidden">
+      <h2>📊 Insight</h2>
+      <div id="insightBody"></div>
+    </section>
+
+    <!-- ===================== BANK HOOK ===================== -->
+    <section id="page-hook" class="page hidden">
+      <h2>🪝 Bank Hook</h2>
+      <p class="muted">Tekan <b>Guna</b> untuk pakai struktur hook ini di Studio. Ganti [X], [N] dan [harga] mengikut topik — AI akan sesuaikan.</p>
+      <div id="hookList"></div>
+    </section>
+
+    <!-- ===================== TETAPAN ===================== -->
+    <section id="page-tetapan" class="page hidden">
+      <h2>⚙️ Tetapan</h2>
+
+      <div class="card"><h3>🎨 Tema</h3><div class="theme-grid" id="themeGrid"></div></div>
+      <div class="card form">
+        <h3>🔠 Paparan</h3>
+        <div><span class="field-label">Saiz teks</span>
+          <div class="seg" id="fontSeg">
+            <button type="button" data-v="0.9">Kecil</button>
+            <button type="button" data-v="1">Sederhana</button>
+            <button type="button" data-v="1.1">Besar</button>
+            <button type="button" data-v="1.2">Sangat besar</button>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="sHaptic" checked /> Getaran ringan bila salin / simpan</label>
+        <label class="check"><input type="checkbox" id="sAnim" checked /> Animasi "AI sedang menaip" & confetti</label>
+        <div class="stepper-row"><span class="field-label">Sasaran post seminggu</span>
+          <div class="stepper"><button type="button" id="goalMinus">−</button><output id="goalOut">5</output><button type="button" id="goalPlus">+</button></div></div>
       </div>
 
       <form id="settingsForm" class="card form">
@@ -199,7 +295,6 @@
           <label>Nama paparan <input id="sName" placeholder="Nama Anda" /></label>
           <label>Username <input id="sUser" placeholder="username" /></label>
         </div>
-
         <h3>🤖 AI</h3>
         <label>Penyedia AI
           <select id="sProvider">
@@ -208,28 +303,45 @@
             <option value="openai">OpenAI / serasi OpenAI (Groq, OpenRouter…)</option>
           </select>
         </label>
-        <label>API key
-          <input id="sKey" type="password" autocomplete="off" placeholder="Tampal API key di sini" />
-        </label>
+        <label>API key <input id="sKey" type="password" autocomplete="off" placeholder="Tampal API key di sini" /></label>
         <p class="muted small" id="keyHelp"></p>
-        <label>Model <span class="muted">(kosongkan untuk default)</span>
-          <input id="sModel" />
-        </label>
-        <label id="baseUrlRow" class="hidden">Base URL
-          <input id="sBaseUrl" placeholder="https://api.openai.com/v1" />
-        </label>
+        <label>Model <span class="muted">(kosongkan untuk default)</span><input id="sModel" /></label>
+        <label id="baseUrlRow" class="hidden">Base URL <input id="sBaseUrl" placeholder="https://api.openai.com/v1" /></label>
         <label>Persona / gaya akaun anda
           <textarea id="sPersona" rows="3" placeholder="cth. Akaun info jimat & barang best untuk anak muda Malaysia. Gaya santai, guna 'korang'."></textarea>
         </label>
         <button class="btn primary" type="submit">💾 Simpan</button>
-        <p class="muted small">🔒 API key & draf disimpan dalam browser ini sahaja dan dihantar terus ke penyedia AI. Jangan guna komputer awam.</p>
+        <p class="muted small">🔒 API key disimpan dalam browser ini sahaja dan dihantar terus ke penyedia AI.</p>
       </form>
+
+      <div class="card form">
+        <h3>✍️ Gaya tulisan saya</h3>
+        <p class="muted small">Tampal 5–10 post lama anda (pisahkan dengan baris kosong). AI akan analisis & tiru gaya anda.</p>
+        <textarea id="styleSamples" rows="6" placeholder="Post 1…&#10;&#10;Post 2…&#10;&#10;Post 3…"></textarea>
+        <button class="btn" id="analyzeStyleBtn">🔍 Analisis gaya saya</button>
+        <label>Panduan gaya (boleh edit)
+          <textarea id="styleGuide" rows="6" placeholder="Akan diisi selepas analisis"></textarea>
+        </label>
+        <label class="check"><input type="checkbox" id="sUseStyle" /> Guna gaya ini secara default</label>
+        <button class="btn" id="saveStyleBtn">💾 Simpan gaya</button>
+      </div>
+
+      <div class="card form">
+        <h3>☁️ Sync antara peranti (Google Drive)</h3>
+        <p class="muted small">Draf, produk, siri & pelan disimpan dalam folder tersembunyi Google Drive anda (API key tidak di-sync). Perlu Google Client ID — <a href="https://github.com/Imrnwfi/threads-autopost#sync-google-drive" target="_blank" rel="noopener">lihat panduan</a>.</p>
+        <label>Google OAuth Client ID <input id="sClientId" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" /></label>
+        <div class="row wrap">
+          <button class="btn primary" id="syncNowBtn">☁️ Sync sekarang</button>
+          <button class="btn" id="syncOffBtn">Putuskan</button>
+        </div>
+        <p class="muted small" id="syncStatus"></p>
+      </div>
 
       <div class="card">
         <h3>💾 Data</h3>
         <div class="row wrap">
-          <button class="btn" id="exportBtn">⬇️ Eksport draf</button>
-          <label class="btn">⬆️ Import draf<input type="file" id="importInput" accept="application/json" hidden /></label>
+          <button class="btn" id="exportBtn">⬇️ Eksport</button>
+          <label class="btn">⬆️ Import<input type="file" id="importInput" accept="application/json" hidden /></label>
           <button class="btn danger" id="clearBtn">🗑️ Padam semua</button>
         </div>
       </div>
@@ -238,24 +350,14 @@
   </main>
 
   <nav class="tabs" id="tabs">
-    <button data-tab="utama" class="active"><span>🏠</span>Utama</button>
-    <button data-tab="trending"><span>🔥</span>Trending</button>
-    <button data-tab="studio" class="fab"><span>✨</span>Studio</button>
-    <button data-tab="draf"><span>📝</span>Draf</button>
-    <button data-tab="tetapan"><span>⚙️</span>Tetapan</button>
+    <button data-tab="utama" class="active"><span data-icon="home" data-size="22"></span>Utama</button>
+    <button data-tab="trending"><span data-icon="flame" data-size="22"></span>Trending</button>
+    <button data-tab="studio" class="fab"><span data-icon="sparkles" data-size="24"></span>Studio</button>
+    <button data-tab="draf"><span data-icon="notes" data-size="22"></span>Draf</button>
+    <button data-tab="lagi"><span data-icon="grid" data-size="22"></span>Lagi</button>
   </nav>
 
-  <!-- Lembaran pilih tema -->
-  <div id="themeSheet" class="sheet hidden" role="dialog" aria-label="Pilih tema">
-    <div class="sheet-backdrop" data-close></div>
-    <div class="sheet-panel">
-      <div class="sheet-handle"></div>
-      <h3>🎨 Pilih tema</h3>
-      <div class="theme-grid" id="themeGridSheet"></div>
-    </div>
-  </div>
-
   <div id="toast" class="toast hidden"></div>
-  <script src="app.js" type="module"></script>
+  <script src="js/app.js" type="module"></script>
 </body>
 </html>

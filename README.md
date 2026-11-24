@@ -1,6 +1,6 @@
 # 🧵 Threads Post Generator
 
-Laman web untuk **cari topik viral Malaysia**, **tulis ayat affiliate Shopee** dan **jana bebenang (thread) Threads** dengan AI.
+Laman web (boleh dipasang sebagai app) untuk **cari topik viral Malaysia**, **tulis ayat affiliate Shopee** dan **jana bebenang Threads dengan AI** — lengkap dengan kalendar kandungan, penjejak komisen, insight & kad gambar.
 
 👉 **Buka:** https://imrnwfi.github.io/threads-autopost/
 
@@ -13,53 +13,91 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
 
 ## Ciri-ciri
 
-| | |
-|---|---|
-| 🔥 **Topik viral** | Google Trends (MY) + Google News (BM & English), dikemas kini **setiap jam** oleh GitHub Actions. 6 kategori: kewangan, makanan, voucher, bantuan kerajaan, info viral, AI. |
-| 🛍️ **Affiliate Shopee** | Tampal link → **✨ Isi automatik** (AI cari nama, harga & kelebihan produk) → pilih gaya ayat (Wajib ada, Bawah bajet, Masalah→solusi, POV, Senarai, Pendapat jujur, Promo). Link diletak dalam **komen pertama**, dengan pilihan #affiliate. |
-| 🧵 **Bebenang** | 2–8 bahagian bersambung (hook → isi → CTA), penomboran 1/n pilihan, **tulis semula satu bahagian** sahaja. |
-| 👀 **Pratonton macam Threads** | Gambar profil, nama & garis bebenang. Leret untuk tukar variasi. |
-| 🎨 **8 tema** | Ikut peranti, Threads Gelap/Cerah, Kreator Ceria, Studio Pro, Pastel Manis, Neon Malam, Laut Biru. Tekan 🎨 untuk tukar bila-bila masa. |
-| 📝 **Draf** | Simpan, sunting, Belum post / Sudah post, eksport/import JSON. |
-| 🤖 **Pilihan AI** | Google Gemini (ada tier percuma), Anthropic Claude, atau API serasi OpenAI. |
-| 🔒 **Privasi** | Tiada pelayan. API key & draf disimpan dalam browser anda sahaja. |
+### ✍️ Menulis
+- **Jana post / bebenang** (2–8 bahagian) dengan nada, bahasa & loghat (BM, baku, English, Manglish, Utara, Kelantan, Sabah, Sarawak).
+- **Skor hook** 1–10 dengan tips & 3 hook alternatif.
+- **Gaya tulisan saya** — tampal post lama, AI analisis & tiru gaya anda.
+- **Bank hook** — 50+ templat ayat pembuka ikut kategori.
+- **Tukar sekali tekan:** Pendek, Lucu, Yakin, ±Emoji, Hook kuat, CTA, tukar bahasa — dengan **↩︎ Asal**.
+- **Tulis semula satu bahagian** sahaja dalam bebenang.
+- **Siri kandungan** (#1, #2…) — AI pilih subtopik baharu yang tak berulang.
+
+### 🛍️ Affiliate
+- Tampal link Shopee → **✨ Isi automatik** (AI cari nama, harga & kelebihan).
+- **Banyak produk dalam satu bebenang** (sehingga 6) — semua link dalam komen pertama.
+- **Simpanan produk** + **penjejak klik, jualan & komisen** (🏆 produk paling laku).
+- **Musim jualan & perayaan** (11.11, 12.12, Payday, Raya, CNY, Black Friday…) dengan idea kandungan.
+- **Kongsi terus dari app Shopee** ke app ini (Android, selepas dipasang).
+
+### 🔥 Topik viral
+- Google Trends, Google News (6 kategori + berita utama), Reddit, forum Lowyat & YouTube Trending (pilihan) — dikemas kini **setiap jam** oleh GitHub Actions.
+- **🚀 Meletup** — topik baharu yang naik mendadak dalam 1–3 jam.
+- **Kategori sendiri** dengan kata kunci anda (cth. Kereta, Parenting).
+
+### 🗓️ Perancangan & insight
+- **Kalendar** — pelan mingguan (cth. Isnin kewangan, Rabu affiliate) + jadual draf + "Hari ini" di Utama.
+- **Insight masa terbaik** — isi suka/balasan/kongsi selepas post, app cadangkan masa, hari & format terbaik.
+- **Streak harian 🔥** & sasaran post mingguan.
+
+### 🎨 Pengalaman
+- Onboarding 3 langkah, 8 tema, ikon SVG, saiz teks boleh laras.
+- **Pratonton dalam bingkai telefon**, animasi "AI sedang menaip", confetti 🎉.
+- **Salin seterusnya** untuk bebenang (1 → 2 → 3 → komen).
+- Draf: **cari & tapis**, **label warna**, **leret** kiri (padam) / kanan (sudah post), **buat asal**.
+- **Kad gambar** (4:5, 1:1, 9:16) — muat turun atau kongsi terus.
+- **PWA** — pasang di skrin utama, boleh dibuka luar talian.
+- **Sync Google Drive** antara telefon & laptop.
 
 ## Cara guna
 
-1. Buka laman di atas (Chrome/Safari, telefon atau komputer).
-2. **Tetapan** → pilih penyedia AI → tampal API key → Simpan.
+1. Buka laman di atas. Ikut 3 langkah onboarding (nama → tema → API key).
    - Gemini: dapatkan key percuma di [Google AI Studio](https://aistudio.google.com/apikey).
-3. **Topik viral:** tab Trending → **✨ Jana post**.
-   **Affiliate:** Studio → 🛍️ Affiliate → tampal link Shopee → **✨ Isi automatik** → **Jana sekarang**.
-4. Edit jika perlu → **🧵 Buka di Threads** → post.
-   - Bebenang: bahagian 2 dan seterusnya → **Salin** → tampal di "Tambah ke bebenang".
-   - Affiliate: salin **Komen pertama** (ada link) → komen pada post anda.
-5. Tekan **✓ Sudah post**.
+2. **Topik viral:** Trending → **✨ Jana post**. **Affiliate:** Studio → 🛍️ Affiliate → tampal link → **✨ Isi automatik** → **Jana sekarang**.
+3. Edit → **Buka di Threads** → post. Bebenang: guna **Salin seterusnya**. Affiliate: salin **Komen pertama** (ada link).
+4. Tekan **✓ Sudah post** (atau leret draf ke kanan).
+
+### Pasang sebagai app
+- **Android (Chrome):** menu ⋮ → *Pasang aplikasi*. Selepas itu, dalam app Shopee tekan **Kongsi → Threads Gen**.
+- **iPhone (Safari):** Kongsi □↑ → *Add to Home Screen*.
+
+## Sync Google Drive
+
+Data disimpan dalam folder tersembunyi (appDataFolder) Google Drive anda sendiri. API key **tidak** di-sync.
+
+1. Buka [Google Cloud Console](https://console.cloud.google.com/) → cipta projek baharu.
+2. **APIs & Services → Library** → aktifkan **Google Drive API**.
+3. **Google Auth Platform → Branding**: isi nama app & emel. **Audience**: pilih *External*, tambah emel anda sebagai **Test user**.
+4. **Clients → Create client** → jenis **Web application** → *Authorized JavaScript origins*: `https://imrnwfi.github.io` → **Create**.
+5. Salin **Client ID** (`…apps.googleusercontent.com`) → tampal di **Tetapan → Sync** → **Sync sekarang**.
+
+## YouTube Trending (pilihan)
+
+1. Google Cloud Console → aktifkan **YouTube Data API v3** → **Credentials → Create API key**.
+2. Repo GitHub → **Settings → Secrets and variables → Actions → New repository secret** → nama `YOUTUBE_API_KEY`.
+3. **Actions** → jalankan workflow sekali.
 
 ## Cara ia berfungsi
 
 ```
 GitHub Actions (setiap jam)
-  └─ scripts/fetch-trends.mjs → ambil RSS Google Trends & Google News
-       └─ site/data/trends.json
-            └─ deploy ke GitHub Pages bersama site/ (HTML/CSS/JS)
+  └─ scripts/fetch-trends.mjs → Google Trends/News, Reddit, Lowyat, YouTube
+       └─ bandingkan dengan larian lepas (topik meletup) → site/data/trends.json
+            └─ deploy ke GitHub Pages bersama site/
 
-Browser anda
-  ├─ baca data/trends.json
-  ├─ panggil API AI terus (guna key anda)
-  └─ simpan draf dalam localStorage
+Browser / app anda
+  ├─ data/trends.json
+  ├─ API AI terus (Gemini / Claude / serasi OpenAI) guna key anda
+  ├─ localStorage (draf, produk, siri, pelan)
+  └─ Google Drive appDataFolder (sync, pilihan)
 ```
 
 ## Pasang sendiri (fork)
 
-1. Fork repo ini.
-2. **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. **Actions** → aktifkan workflow → jalankan **"Kemas kini trending & deploy ke GitHub Pages"** (Run workflow).
-4. Laman anda: `https://<username>.github.io/<nama-repo>/`
+1. Fork repo ini → **Settings → Pages → Source: GitHub Actions**.
+2. **Actions** → jalankan **"Kemas kini trending & deploy ke GitHub Pages"**.
+3. Untuk sync, gunakan origin GitHub Pages anda sendiri pada langkah 4 di atas.
 
-> Nota: GitHub mematikan workflow berjadual dalam repo awam selepas 60 hari tanpa aktiviti. Jika trending berhenti dikemas kini, buka tab **Actions** dan aktifkan semula.
-
-### Jalankan di komputer
+> GitHub mematikan workflow berjadual dalam repo awam selepas 60 hari tanpa aktiviti. Jika trending berhenti dikemas kini, aktifkan semula di tab **Actions**.
 
 ```bash
 npm install
@@ -70,17 +108,23 @@ npm test
 ## Struktur projek
 
 ```
-site/                     # Laman web (index.html, app.js, ai.js, style.css)
-lib/trends.js             # Logik cari & skor topik viral
-scripts/fetch-trends.mjs  # Dijalankan oleh GitHub Actions
-.github/workflows/pages.yml
-test/
+site/index.html, style.css, manifest.webmanifest, sw.js, icons/
+site/js/app.js        # Navigasi, Utama, Trending, Studio, kad pratonton, Draf
+site/js/pages.js      # Kalendar, Produk, Siri, Insight, Bank Hook, Tetapan
+site/js/ai.js         # Prompt & panggilan AI
+site/js/data.js       # Bank hook, musim jualan, pelan, label
+site/js/store.js      # localStorage + gabung data
+site/js/sync.js       # Sync Google Drive
+site/js/imagecard.js  # Kad gambar (canvas)
+site/js/icons.js      # Ikon SVG
+lib/trends.js         # Cari & skor topik viral
+scripts/fetch-trends.mjs
 ```
 
 ## Tips
 
-- Untuk **bantuan kerajaan** dan **kewangan**, sentiasa semak fakta di laman rasmi sebelum post — AI hanya guna tajuk/ringkasan berita.
-- Draf disimpan per browser. Guna **Eksport/Import** di Tetapan untuk pindah ke peranti lain.
+- Untuk **bantuan kerajaan** dan **kewangan**, sentiasa semak fakta di laman rasmi — AI hanya guna tajuk/ringkasan berita.
+- Harga produk dari "Isi automatik" mungkin berubah — semak di Shopee sebelum post.
 
 ## Lesen
 

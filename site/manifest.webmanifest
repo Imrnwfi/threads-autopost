@@ -1,0 +1,27 @@
+{
+  "name": "Threads Post Generator",
+  "short_name": "Threads Gen",
+  "description": "Topik viral Malaysia, ayat affiliate Shopee & bebenang Threads dengan AI.",
+  "lang": "ms",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0b0c",
+  "theme_color": "#0b0b0c",
+  "categories": ["productivity", "social"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "share_target": {
+    "action": "./?share=1",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  },
+  "shortcuts": [
+    { "name": "Affiliate Shopee", "url": "./#studio", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Topik viral", "url": "./#trending", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

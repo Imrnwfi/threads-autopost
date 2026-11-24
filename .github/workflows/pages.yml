@@ -28,6 +28,8 @@ jobs:
       - run: npm ci
       - name: Ambil topik trending
         run: node scripts/fetch-trends.mjs site/data/trends.json
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
