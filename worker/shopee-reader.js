@@ -8,8 +8,8 @@
 const ALLOWED_HOSTS = /(^|\.)(shopee\.com\.my|shp\.ee|shope\.ee)$/i;
 const ALLOWED_ORIGINS = ['https://imrnwfi.github.io', 'http://localhost:3000', 'http://localhost:4010'];
 const UAS = [
-  'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
   'WhatsApp/2.24.1 A',
+  'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
   'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36',
 ];
 const CACHE_SECONDS = 6 * 3600;
@@ -98,7 +98,7 @@ export default {
     for (let i = 0; i < 6; i++) {
       let res;
       try {
-        res = await fetch(finalUrl, { redirect: 'manual', headers: { 'User-Agent': UAS[2], 'Accept': 'text/html' } });
+        res = await fetch(finalUrl, { redirect: 'manual', headers: { 'User-Agent': UAS[0], 'Accept': 'text/html' } });
       } catch (e) { trace.push({ step: 'redirect', url: finalUrl, error: String(e) }); break; }
       const loc = res.headers.get('location');
       trace.push({ step: 'redirect', url: finalUrl, status: res.status, location: loc });
