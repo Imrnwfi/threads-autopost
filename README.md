@@ -1,6 +1,6 @@
 # 🧵 Threads Post Generator
 
-Laman web (boleh dipasang sebagai app) untuk **cari topik viral Malaysia**, **tulis ayat affiliate Shopee** dan **jana bebenang Threads dengan AI** — lengkap dengan kalendar kandungan, penjejak komisen, insight & kad gambar.
+Laman web (boleh dipasang sebagai app) untuk info terkini **💰 Kewangan**, **🏛️ Bantuan Kerajaan** & **📲 E-Wallet** — jana post & bebenang Threads dengan AI, **Kad Info** (infografik untuk Story/Status), ayat affiliate Shopee, kalendar kandungan & penjejak komisen.
 
 👉 **Buka:** https://imrnwfi.github.io/threads-autopost/
 
@@ -29,7 +29,23 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
 - **Musim jualan & perayaan** (11.11, 12.12, Payday, Raya, CNY, Black Friday…) dengan idea kandungan.
 - **Kongsi terus dari app Shopee** ke app ini (Android, selepas dipasang).
 
-### 🔥 Topik viral
+### 🗂️ Kategori (hanya 3 topik)
+
+| Kumpulan | Subkategori |
+|---|---|
+| 💰 **Kewangan** | 📈 Pelaburan · 🎯 Tips Labur · 📱 App Pelaburan · 🐷 Tips Simpan & Jimat · 🏦 Bank & Bank Digital · 💻 Duit Tambahan |
+| 🏛️ **Bantuan Kerajaan** | 💵 Bantuan Tunai (STR, SARA) · ⛽ Subsidi (BUDI95) · 🎓 Pendidikan & Belia · 📜 Belanjawan & Program |
+| 📲 **E-Wallet** | 🎁 Promo & Cashback · 🆓 Duit & Topup Percuma · 💳 Tips & Berita E-Wallet · 🚨 Amaran Penipuan |
+
+Topik di luar kategori ini ditapis keluar secara automatik.
+
+### 🖼️ Kad Info
+- Maklumat ringkas versi gambar: tajuk, angka penting, 3–5 poin, nota & sumber.
+- Saiz **9:16 (Story/Status)**, 4:5 & 1:1 · 6 gaya (ikut kategori, tema, gelap, cerah, kertas, sunset).
+- AI boleh **sahkan fakta dengan carian web** (Gemini/Claude). Kad tanda ⚠️ jika fakta tidak dapat disahkan.
+- **Kongsi terus** ke WhatsApp Status / Instagram Story, muat turun PNG, salin kapsyen, simpan ke Draf.
+
+### 🔥 Topik terkini
 - Google Trends, Google News (6 kategori + berita utama), YouTube Trending, forum Lowyat & Reddit (pilihan) — dikemas kini **setiap jam** oleh GitHub Actions.
 - **🚀 Meletup** — topik baharu yang naik mendadak dalam 1–3 jam.
 - **Kategori sendiri** dengan kata kunci anda (cth. Kereta, Parenting).

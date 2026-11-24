@@ -61,9 +61,9 @@
       <div id="todayCard"></div>
 
       <div class="home-grid">
-        <button class="home-card c1" data-goto="trending"><span class="hc-ic" data-icon="flame" data-size="26"></span><span class="hc-title">Topik Viral</span><span class="hc-desc">Apa yang orang Malaysia sembang sekarang</span></button>
+        <button class="home-card c1" data-goto="trending"><span class="hc-ic" data-icon="flame" data-size="26"></span><span class="hc-title">Info Terkini</span><span class="hc-desc">Kewangan, bantuan kerajaan & e-wallet</span></button>
         <button class="home-card c2" data-preset='{"mode":"affiliate","multi":false}'><span class="hc-ic" data-icon="bag" data-size="26"></span><span class="hc-title">Affiliate</span><span class="hc-desc">Tampal link Shopee, AI tulis ayat jualan</span></button>
-        <button class="home-card c3" data-preset='{"mode":"affiliate","multi":true}'><span class="hc-ic" data-icon="cart" data-size="26"></span><span class="hc-title">Senarai Produk</span><span class="hc-desc">Banyak produk dalam satu bebenang</span></button>
+        <button class="home-card c3" data-preset='{"mode":"info"}'><span class="hc-ic" data-icon="image" data-size="26"></span><span class="hc-title">Kad Info</span><span class="hc-desc">Info ringkas versi gambar untuk Story / Status</span></button>
         <button class="home-card c4" data-preset='{"mode":"topic","format":"thread"}'><span class="hc-ic" data-icon="list" data-size="26"></span><span class="hc-title">Bebenang</span><span class="hc-desc">Beberapa post bersambung</span></button>
       </div>
 
@@ -83,7 +83,8 @@
         <button class="icon-btn" id="refreshTrending" title="Muat semula">↻</button>
       </div>
       <div class="chips scroll-x" id="catChips"></div>
-      <div class="chips scroll-x small-chips" id="srcChips"></div>
+      <div class="chips scroll-x small-chips hidden" id="subChips"></div>
+      <div class="chips scroll-x small-chips hidden" id="srcChips"></div>
       <p class="muted small" id="trendMeta"></p>
       <div id="trendList" class="list"></div>
     </section>
@@ -95,11 +96,12 @@
         <div class="seg big" id="modeSeg">
           <button type="button" data-v="topic" class="active">💡 Topik</button>
           <button type="button" data-v="affiliate">🛍️ Affiliate</button>
+          <button type="button" data-v="info">🖼️ Kad Info</button>
         </div>
 
         <!-- Topik -->
         <div class="card form" id="topicFields">
-          <label>📚 Siri <span class="muted">(pilihan)</span>
+          <label id="seriesRow">📚 Siri <span class="muted">(pilihan)</span>
             <select id="gSeries"></select>
           </label>
           <label>Topik
@@ -111,6 +113,8 @@
           <label>Kategori <select id="gCategory"></select></label>
           <input type="hidden" id="gSourceUrl" />
           <input type="hidden" id="gSource" />
+          <label class="check hidden" id="infoWebRow"><input type="checkbox" id="infoWeb" checked /> ✅ Sahkan & lengkapkan fakta dengan carian web (disyorkan)</label>
+          <p class="muted small hidden" id="infoHint">AI akan ringkaskan jadi gambar 3–5 poin dengan angka penting — sedia untuk Story / Status WhatsApp & Instagram.</p>
         </div>
 
         <!-- Affiliate -->
@@ -178,13 +182,13 @@
             </div>
             <label class="check"><input type="checkbox" id="numbering" checked /> <span id="numberingLabel">Tambah nombor (1/4, 2/4…)</span></label>
           </div>
-          <div><span class="field-label">Nada</span><div class="chips" id="toneChips"></div></div>
+          <div id="toneRow"><span class="field-label">Nada</span><div class="chips" id="toneChips"></div></div>
           <div><span class="field-label">Bahasa</span><div class="chips scroll-x" id="langChips"></div></div>
-          <div>
+          <div id="hookBlock">
             <span class="field-label">Hook</span>
             <div class="row wrap" id="hookRow"></div>
           </div>
-          <div class="stepper-row">
+          <div class="stepper-row" id="countRow">
             <span class="field-label">Variasi</span>
             <div class="stepper"><button type="button" id="countMinus">−</button><output id="countOut">3</output><button type="button" id="countPlus">+</button></div>
           </div>

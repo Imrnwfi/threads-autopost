@@ -1,15 +1,16 @@
 // Threads Post Generator — aplikasi utama
 import {
   MAX_CHARS, MAX_MULTI, TONES, LANGS, AFF_STYLES, QUICK_TRANSFORMS, len, nameFromUrl, firstUrl,
-  generate, regeneratePart, researchProduct, transform, scoreHook,
+  generate, regeneratePart, researchProduct, transform, scoreHook, generateInfo,
 } from './ai.js';
+import { mountInfoEditor, openInfoSheet } from './infocard.js';
 import { state, save, touch, removeFrom, restore, get, set, onChange } from './store.js';
 import {
   $, $$, esc, uid, nowIso, toast, busy, copyText, fmtTime, ago, autosize, openSheet, myParts, setNoKeyHandler,
   haptic, confetti, typewriter,
 } from './util.js';
 import { icon, hydrateIcons } from './icons.js';
-import { HOOK_GROUPS, upcomingEvents, daysUntil, DEFAULT_PLAN, SLOT_TYPES, DAY_NAMES, LABELS } from './data.js';
+import { HOOK_GROUPS, upcomingEvents, daysUntil, DEFAULT_PLAN, SLOT_TYPES, DAY_NAMES, LABELS, GROUPS, CATEGORY_LABELS } from './data.js';
 import { openImageCard } from './imagecard.js';
 import { initPages } from './pages.js';
 import { initUpdates } from './update.js';
@@ -95,15 +96,13 @@ function refreshCounts() {
 // =========================================================
 // Trending
 // =========================================================
-let CATS = {
-  finance: { label: 'Kewangan', emoji: '💰' }, food: { label: 'Makanan', emoji: '🍜' },
-  voucher: { label: 'Voucher & Promo', emoji: '🎟️' }, bantuan: { label: 'Bantuan Kerajaan', emoji: '🏛️' },
-  viral: { label: 'Info Viral', emoji: '🔥' }, ai: { label: 'Info AI', emoji: '🤖' },
-};
+let CATS = { ...CATEGORY_LABELS };
+let GRPS = { ...GROUPS };
 let trendData = null;
 let trendView = [];
-const trendFilter = { cat: 'semua', src: 'semua' };
+const trendFilter = { cat: 'semua', sub: null, src: 'semua' };
 const SOURCES = { semua: 'Semua sumber', berita: '📰 Berita', Reddit: '👽 Reddit', Lowyat: '💬 Lowyat', YouTube: '▶️ YouTube' };
+const groupOf = (cat) => CATS[cat]?.group;
 
 const topicKey = (s = '') => s.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120);
 function usedTopics() {
@@ -124,10 +123,14 @@ const kwMatch = (text, kws) => {
 
 export function allTrends() {
   if (!trendData) return [];
-  if (trendData.items) return trendData.items;
-  const seen = new Set();
-  return Object.values(trendData.categories).flat().sort((a, b) => b.score - a.score)
-    .filter((t) => { const k = t.title.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  let list = trendData.items;
+  if (!list) {
+    const seen = new Set();
+    list = Object.values(trendData.categories).flat().sort((a, b) => b.score - a.score)
+      .filter((t) => { const k = t.title.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+  }
+  // Hanya kewangan, bantuan kerajaan & e-wallet
+  return list.filter((t) => CATS[t.category]);
 }
 function filteredTrends() {
   let list = allTrends();
@@ -136,26 +139,43 @@ function filteredTrends() {
   else if (c.startsWith('custom:')) {
     const cc = state.customCats.find((x) => x.id === c.slice(7));
     list = cc ? list.filter((t) => kwMatch(`${t.title} ${t.snippet}`, cc.keywords)) : [];
-  } else if (c !== 'semua') list = list.filter((t) => t.category === c);
-  else list = list.filter((t) => t.category !== 'lain');
+  } else if (GRPS[c]) {
+    list = list.filter((t) => groupOf(t.category) === c);
+    if (trendFilter.sub) list = list.filter((t) => t.category === trendFilter.sub);
+  }
   const s = trendFilter.src;
   if (s === 'berita') list = list.filter((t) => (t.origins || [t.origin]).some((o) => /Google/.test(o)));
   else if (s !== 'semua') list = list.filter((t) => (t.origins || [t.origin]).includes(s));
   return list;
 }
 function renderTrendChips() {
+  const all = allTrends();
+  const count = (fn) => all.filter(fn).length;
   const cats = [
-    ['semua', '✨ Semua'], ['meletup', '🚀 Meletup'],
-    ...Object.entries(CATS).map(([k, c]) => [k, `${c.emoji} ${c.label}`]),
-    ...state.customCats.map((c) => [`custom:${c.id}`, `${c.emoji || '⭐'} ${c.name}`]),
+    ['semua', '✨ Semua', all.length], ['meletup', '🚀 Meletup', count((t) => t.meletup || t.rising)],
+    ...Object.entries(GRPS).map(([k, g]) => [k, `${g.emoji} ${g.label}`, count((t) => groupOf(t.category) === k)]),
+    ...state.customCats.map((c) => [`custom:${c.id}`, `${c.emoji || '⭐'} ${c.name}`, null]),
   ];
-  $('#catChips').innerHTML = cats.map(([k, l]) => `<button class="chip ${trendFilter.cat === k ? 'on' : ''}" data-cat="${esc(k)}">${esc(l)}</button>`).join('')
+  $('#catChips').innerHTML = cats.map(([k, l, n]) => `<button class="chip ${trendFilter.cat === k ? 'on' : ''}" data-cat="${esc(k)}" ${GRPS[k] ? `style="--lc:${GRPS[k].color}"` : ''}>${esc(l)}${trendData && n !== null ? ` <small>${n}</small>` : ''}</button>`).join('')
     + '<button class="chip dashed" data-addcat>＋ Kategori</button>';
-  const avail = new Set(allTrends().flatMap((t) => t.origins || [t.origin]));
+  // Subkategori untuk kumpulan dipilih
+  const g = GRPS[trendFilter.cat] ? trendFilter.cat : null;
+  $('#subChips').classList.toggle('hidden', !g);
+  if (g) {
+    const subs = Object.entries(CATS).filter(([, c]) => c.group === g);
+    $('#subChips').innerHTML = `<button class="chip ${!trendFilter.sub ? 'on' : ''}" data-sub="">Semua</button>`
+      + subs.map(([k, c]) => `<button class="chip ${trendFilter.sub === k ? 'on' : ''}" data-sub="${k}">${c.emoji} ${esc(c.label)} <small>${count((t) => t.category === k)}</small></button>`).join('');
+  }
+  const avail = new Set(all.flatMap((t) => t.origins || [t.origin]));
+  const extra = Object.keys(SOURCES).filter((k) => !['semua', 'berita'].includes(k) && avail.has(k));
+  $('#srcChips').classList.toggle('hidden', !extra.length);
   $('#srcChips').innerHTML = Object.entries(SOURCES)
     .filter(([k]) => k === 'semua' || k === 'berita' || avail.has(k))
     .map(([k, l]) => `<button class="chip ${trendFilter.src === k ? 'on' : ''}" data-src="${k}">${l}</button>`).join('');
-  $('#gCategory').innerHTML = Object.entries(CATS).map(([k, c]) => `<option value="${k}">${c.emoji} ${esc(c.label)}</option>`).join('');
+  const cur = $('#gCategory').value;
+  $('#gCategory').innerHTML = Object.entries(GRPS).map(([gk, gr]) => `<optgroup label="${gr.emoji} ${esc(gr.label)}">${
+    Object.entries(CATS).filter(([, c]) => c.group === gk).map(([k, c]) => `<option value="${k}">${c.emoji} ${esc(c.label)}</option>`).join('')}</optgroup>`).join('');
+  if (CATS[cur]) $('#gCategory').value = cur;
 }
 $('#catChips').addEventListener('click', (e) => {
   if (e.target.closest('[data-addcat]')) return openCustomCat();
@@ -163,6 +183,13 @@ $('#catChips').addEventListener('click', (e) => {
   if (!b) return;
   if (trendFilter.cat === b.dataset.cat && b.dataset.cat.startsWith('custom:')) return openCustomCat(b.dataset.cat.slice(7));
   trendFilter.cat = b.dataset.cat;
+  trendFilter.sub = null;
+  renderTrendChips(); renderTrending();
+});
+$('#subChips').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-sub]');
+  if (!b) return;
+  trendFilter.sub = b.dataset.sub || null;
   renderTrendChips(); renderTrending();
 });
 $('#srcChips').addEventListener('click', (e) => {
@@ -206,7 +233,9 @@ async function loadTrending(force = false) {
     const res = await fetch(`data/trends.json${force ? `?t=${Date.now()}` : ''}`, { cache: force ? 'no-store' : 'default' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     trendData = await res.json();
-    if (trendData.labels) CATS = trendData.labels;
+    if (trendData.labels) CATS = Object.fromEntries(Object.entries(trendData.labels).filter(([, v]) => v.group));
+    if (!Object.keys(CATS).length) CATS = { ...CATEGORY_LABELS };
+    if (trendData.groups) GRPS = trendData.groups;
     renderTrendChips();
     renderTrending();
     if (!$('#page-utama').classList.contains('hidden')) renderHome();
@@ -219,7 +248,7 @@ function trendTags(t, i, used) {
   const c = CATS[t.category] || {};
   const origins = t.origins || [t.origin];
   return [
-    t.category && t.category !== 'lain' ? `<span class="tag">${c.emoji || ''} ${esc(c.label || t.category)}</span>` : '',
+    c.label ? `<span class="tag lbl" style="--lc:${GRPS[c.group]?.color || 'var(--muted)'}">${c.emoji || ''} ${esc(c.label)}</span>` : '',
     t.meletup ? '<span class="tag hot">🚀 Meletup</span>' : t.rising ? '<span class="tag hot">📈 Naik</span>' : i < 3 ? '<span class="tag hot">🔥 Hangat</span>' : '',
     origins.filter((o) => !/Google/.test(o)).map((o) => `<span class="tag">${esc(SOURCES[o] || o)}</span>`).join(''),
     used.has(topicKey(t.title)) ? '<span class="tag ok">✓ Digunakan</span>' : '',
@@ -250,6 +279,7 @@ function renderTrending() {
       <div class="heat"><i style="width:${Math.round((t.score / max) * 100)}%"></i></div>
       <div class="row">
         <button class="btn primary sm" data-gen="${i}">✨ Jana post</button>
+        <button class="btn sm" data-info="${i}">🖼️ Kad info</button>
         ${t.link ? `<a class="btn sm" href="${esc(t.link)}" target="_blank" rel="noopener">Sumber ↗</a>` : ''}
         <span class="muted small ellip">${esc((t.sources || []).slice(0, 3).join(', '))}</span>
       </div>
@@ -259,9 +289,11 @@ $('#refreshTrending').addEventListener('click', () => loadTrending(true));
 $('#trendList').addEventListener('click', (e) => {
   const b = e.target.closest('[data-gen]');
   if (b) useTrend(trendView[Number(b.dataset.gen)]);
+  const k = e.target.closest('[data-info]');
+  if (k) useTrend(trendView[Number(k.dataset.info)], 'info');
 });
-export function useTrend(t) {
-  applyPreset({ mode: 'topic' });
+export function useTrend(t, mode = 'topic') {
+  applyPreset({ mode: mode === 'info' ? 'info' : 'topic' });
   $('#gSeries').value = '';
   $('#gTopic').value = t.title;
   $('#gSnippet').value = t.snippet && t.snippet !== t.title ? t.snippet : '';
@@ -314,7 +346,7 @@ function renderHome() {
     <div class="stat"><b>RM${komisen.toFixed(komisen >= 100 ? 0 : 2)}</b><span>Komisen</span></div>`;
 
   if (!trendData) { $('#homeTrends').innerHTML = '<div class="skeleton"></div>'; return; }
-  const all = allTrends().filter((t) => t.category !== 'lain');
+  const all = allTrends();
   const hot = all.filter((t) => t.meletup).slice(0, 3);
   $('#homeMeletup').innerHTML = hot.length ? `
     <div class="section-head"><h3>🚀 Sedang meletup</h3></div>
@@ -376,9 +408,12 @@ export function startSlot(slot) {
   const preset = { ...(SLOT_TYPES[slot.type]?.studio || {}) };
   if (slot.type === 'series' && slot.series_id) preset.series = slot.series_id;
   applyPreset(preset);
-  if (slot.type === 'viral' || ['finance', 'food', 'bantuan', 'ai'].includes(slot.type)) {
-    const pick = allTrends().find((t) => (slot.type === 'viral' || t.category === slot.type) && !usedTopics().has(topicKey(t.title)));
-    if (pick) return useTrend(pick);
+  const st = SLOT_TYPES[slot.type] || {};
+  if (st.pick) {
+    const grp = st.group || slot.type;
+    const match = (t) => st.pick === 'any' || (st.pick === 'group' ? groupOf(t.category) === grp : t.category === slot.type);
+    const pick = allTrends().find((t) => match(t) && !usedTopics().has(topicKey(t.title)));
+    if (pick) return useTrend(pick, st.studio?.mode === 'info' ? 'info' : undefined);
   }
   openTab('studio');
 }
@@ -398,13 +433,18 @@ function syncStudioUI() {
   setSeg('#affSeg', studio.multi ? 'multi' : 'single');
   setSeg('#formatSeg', studio.format);
   const aff = studio.mode === 'affiliate';
+  const info = studio.mode === 'info';
   const multi = aff && studio.multi;
   $('#topicFields').classList.toggle('hidden', aff);
+  for (const id of ['#seriesRow', '#toneRow', '#hookBlock', '#countRow']) $(id).classList.toggle('hidden', info);
+  $('#infoWebRow').classList.toggle('hidden', !info || S().provider === 'openai');
+  $('#infoHint').classList.toggle('hidden', !info);
+  $('#genBtn').innerHTML = info ? '🖼️ Jana kad info' : '✨ Jana sekarang';
   $('#affFields').classList.toggle('hidden', !aff);
   $('#singleProduct').classList.toggle('hidden', multi);
   $('#multiProducts').classList.toggle('hidden', !multi);
-  $('#formatBox').classList.toggle('hidden', multi);
-  $('#threadOpts').classList.toggle('hidden', !(studio.format === 'thread' || multi));
+  $('#formatBox').classList.toggle('hidden', multi || info);
+  $('#threadOpts').classList.toggle('hidden', info || !(studio.format === 'thread' || multi));
   $('#partsOut').closest('.stepper-row').classList.toggle('hidden', multi);
   studio.count = Math.min(Math.max(studio.count, 1), studio.format === 'thread' || multi ? 3 : 5);
   $('#countOut').textContent = studio.count;
@@ -616,6 +656,7 @@ $('#genForm').addEventListener('submit', (e) => {
       Object.assign(opts, { topic: $('#gTopic').value.trim(), snippet: $('#gSnippet').value.trim(), category: $('#gCategory').value, source: $('#gSource').value });
       if (series) opts.series = { name: series.name, emoji: series.emoji, desc: series.desc, no: series.nextNo || 1, history: (series.history || []).map((h) => h.topic) };
     }
+    if (studio.mode === 'info') return makeInfo();
     const box = $('#genResults');
     box.innerHTML = '<div class="section-head"><h3>Sedang menulis…</h3></div><div class="skeleton" style="height:240px"></div>';
     box.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -669,7 +710,7 @@ function recordSaved(item, status) {
     id: uid(), kind: item.kind, mode: item.mode || 'topic', tone: item.tone, lang: item.lang,
     category: item.category, topic: item.topic, source_url: item.source_url,
     product_ids: [], series_id: item.series_id || null, series_no: item.series_no || null,
-    parts: item.parts, comment: item.comment || '', status,
+    parts: item.parts, comment: item.comment || '', status, info: item.info || null,
     created_at: nowIso(), posted_at: status === 'posted' ? nowIso() : null, planned_at: null, engagement: null,
   });
   if (item.products?.length) {
@@ -758,7 +799,8 @@ export function threadCard(item, { saved = false, label = '', onRemoved } = {}) 
         <button type="button" class="btn act-copy-all">${icon('copy', 16)} Salin${n > 1 ? ' semua' : ''}</button>
         <button type="button" class="btn act-preview">${icon('phone', 16)} Pratonton</button>
         <button type="button" class="btn act-score">${icon('target', 16)} Skor hook</button>
-        <button type="button" class="btn act-image">${icon('image', 16)} Kad gambar</button>
+        <button type="button" class="btn act-info">${icon('chart', 16)} Kad info</button>
+        <button type="button" class="btn act-image">${icon('image', 16)} Kad petikan</button>
         ${saved ? '' : `<button type="button" class="btn act-save">${icon('bookmark', 16)} Simpan</button>`}
         ${saved && item.status === 'draft' ? `<button type="button" class="btn act-plan">${icon('calendar', 16)} Jadual</button>` : ''}
         ${saved ? `<button type="button" class="btn act-label">${icon('tag', 16)} Label</button>` : ''}
@@ -881,6 +923,18 @@ export function threadCard(item, { saved = false, label = '', onRemoved } = {}) 
       return toast('🪝 Hook ditukar');
     }
     if (btn.matches('.act-image')) return openImageCard({ parts: current().parts, name: displayName(), user: userName() });
+    if (btn.matches('.act-info')) {
+      const onSave = saved ? (d) => {
+        const p = state.posts.find((x) => x.id === item.id);
+        if (p) { p.info = d; item.info = d; touch(p); save('posts'); toast('💾 Kad info disimpan dalam draf'); }
+      } : null;
+      if (item.info) return openInfoSheet(JSON.parse(JSON.stringify(item.info)), { ...infoCtx(item.category), onSave });
+      return busy(btn, async () => {
+        const d = await generateInfo(S(), { ...aiCtx(), topic: current().parts.join('\n\n'), fromPost: true, category: item.category });
+        item.info = d;
+        openInfoSheet(d, { ...infoCtx(item.category), onSave });
+      }, 'Menyusun…');
+    }
     if (btn.matches('.act-threads')) {
       if (len(tas()[0].value) > MAX_CHARS) return toast(`Bahagian 1 melebihi ${MAX_CHARS} aksara`, true);
       haptic();
@@ -985,7 +1039,7 @@ function openOnboarding() {
     const body = [
       `<div class="ob-hero">🧵</div>
        <h2>Jom setup dalam 1 minit</h2>
-       <p class="muted">App ni bantu cari topik viral, tulis ayat affiliate Shopee & bebenang Threads dengan AI. Mula dengan nama anda (untuk pratonton post).</p>
+       <p class="muted">App ni bantu cari info terkini kewangan, bantuan kerajaan & e-wallet, tulis post & bebenang Threads, dan buat kad info untuk Story/Status. Mula dengan nama anda (untuk pratonton post).</p>
        <label>Nama paparan <input class="ob-name" placeholder="cth. Imran" value="${esc(S().name)}" /></label>
        <label>Username Threads <input class="ob-user" placeholder="cth. imrnwfi" value="${esc(S().user)}" /></label>`,
       `<h2>Pilih gaya anda 🎨</h2><p class="muted">Boleh tukar bila-bila masa melalui butang palet di atas.</p><div class="theme-grid"></div>`,
@@ -1016,10 +1070,41 @@ function openOnboarding() {
       collect();
       if (step < 2) { step++; return draw(); }
       finish();
-      toast(S().apiKey ? '🚀 Siap! Pilih topik viral untuk mula.' : 'Boleh masukkan API key kemudian di Tetapan.');
+      toast(S().apiKey ? '🚀 Siap! Pilih topik terkini untuk mula.' : 'Boleh masukkan API key kemudian di Tetapan.');
     }
   });
   draw();
+}
+
+// --- Kad Info ---
+function infoCtx(category) {
+  const c = CATS[category] || {};
+  const g = GRPS[c.group] || {};
+  return { meta: { group: c.group, groupLabel: g.label, groupEmoji: g.emoji, subLabel: c.label, subEmoji: c.emoji }, name: displayName(), user: userName() };
+}
+async function makeInfo() {
+  const topic = $('#gTopic').value.trim();
+  if (!topic) throw new Error('Masukkan topik atau pilih dari Trending.');
+  const category = $('#gCategory').value;
+  const box = $('#genResults');
+  box.innerHTML = '<div class="section-head"><h3>Sedang menyusun kad info…</h3></div><div class="skeleton" style="height:420px"></div>';
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  try {
+    const data = await generateInfo(S(), {
+      ...aiCtx(), topic, snippet: $('#gSnippet').value.trim(), source: $('#gSource').value, category,
+      web: $('#infoWeb').checked,
+    });
+    box.innerHTML = '<div class="variants-head"><h3>🖼️ Kad Info</h3><span class="muted small">Leret gaya & saiz di bawah</span></div><div class="ie-root"></div>';
+    mountInfoEditor($('.ie-root', box), data, {
+      ...infoCtx(category),
+      onSave: (d) => {
+        const caption = d.caption || [d.title, ...d.points.map((p) => `${p.emoji} ${p.text}`)].join('\n');
+        recordSaved({ kind: 'info', mode: 'info', category, topic, source_url: $('#gSourceUrl').value, parts: [caption.slice(0, MAX_CHARS)], comment: '', info: d }, 'draft');
+        markUsed(topic);
+        toast('💾 Kad info disimpan ke Draf');
+      },
+    });
+  } catch (err) { box.innerHTML = ''; throw err; }
 }
 
 function celebratePosted() {
@@ -1101,7 +1186,7 @@ function matchDraft(p) {
 }
 
 function emptyDrafts() {
-  const top = allTrends().find((t) => t.category !== 'lain');
+  const top = allTrends()[0];
   return `
     <div class="empty rich">
       <span class="big">📝</span>
@@ -1136,7 +1221,7 @@ function renderPosts() {
     else if (postFilter === 'scheduled') list.innerHTML = '<div class="empty rich"><span class="big">📅</span><b>Tiada draf dijadual</b><p>Buka mana-mana draf → tekan <b>Jadual</b> untuk rancang bila nak post. Ia akan muncul dalam Kalendar & "Hari ini".</p><div class="empty-actions"><button class="btn" data-goto="kalendar">🗓️ Lihat Kalendar</button></div></div>';
     else list.innerHTML = '<div class="empty rich"><span class="big">🎉</span><b>Belum ada post ditanda</b><p>Selepas post di Threads, tekan <b>Sudah post</b> (atau leret draf ke kanan). Isi suka & balasan untuk dapat Insight masa terbaik.</p></div>';
     list.onclick = (e) => {
-      if (e.target.closest('[data-empty=trend]')) useTrend(allTrends().find((t) => t.category !== 'lain'));
+      if (e.target.closest('[data-empty=trend]')) useTrend(allTrends()[0]);
       if (e.target.closest('[data-clear-filter]')) { draftQuery.q = ''; draftQuery.chip = 'semua'; $('#draftSearch').value = ''; renderPosts(); }
     };
     return;
@@ -1155,6 +1240,7 @@ function renderPosts() {
         <div class="meta">
           ${lbl ? `<span class="tag lbl" style="--lc:${lbl.color}">● ${esc(lbl.name)}</span>` : ''}
           ${p.mode === 'affiliate' ? '<span class="tag">🛍️ Affiliate</span>' : p.category && c.label ? `<span class="tag">${c.emoji || ''} ${esc(c.label)}</span>` : ''}
+          ${p.info ? '<span class="tag acc">🖼️ Kad Info</span>' : ''}
           ${p.series_no ? `<span class="tag">📚 #${p.series_no}</span>` : ''}
           ${p.parts.length > 1 ? `<span class="tag">🧵 ${p.parts.length}</span>` : ''}
           ${p.planned_at && p.status === 'draft' ? `<span class="tag acc">📅 ${esc(fmtTime(p.planned_at))}</span>` : ''}
@@ -1293,7 +1379,7 @@ applyTheme(themeChoice);
 renderTrendChips();
 syncStudioUI();
 refreshCounts();
-initPages({ openTab, renderers, applyPreset, fillProduct, startSlot, useTrend, upsertProduct, threadCard, refreshCounts, syncStudioUI, getCats: () => CATS, setStudio: (p) => { Object.assign(studio, p); syncStudioUI(); } });
+initPages({ openTab, renderers, applyPreset, fillProduct, startSlot, useTrend, upsertProduct, threadCard, refreshCounts, syncStudioUI, getCats: () => CATS, getGroups: () => GRPS, setStudio: (p) => { Object.assign(studio, p); syncStudioUI(); } });
 if (!handleShare()) {
   const start = location.hash.slice(1);
   openTab(PAGES.includes(start) ? start : 'utama');

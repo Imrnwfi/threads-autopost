@@ -4,7 +4,7 @@ const CACHE = `tpg-${VERSION}`;
 const SHELL = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/app.js', './js/pages.js', './js/ai.js', './js/store.js', './js/util.js', './js/data.js',
-  './js/imagecard.js', './js/sync.js', './js/icons.js', './js/update.js', './js/version.js',
+  './js/imagecard.js', './js/sync.js', './js/icons.js', './js/update.js', './js/version.js', './js/infocard.js',
   './icons/icon-192.png', './icons/icon-512.png',
 ];
 

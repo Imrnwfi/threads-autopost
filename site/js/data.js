@@ -70,6 +70,41 @@ export const HOOK_GROUPS = {
       'Aku tak setuju dengan [X], dan ini sebabnya.',
     ],
   },
+  kewangan: {
+    label: '💰 Kewangan',
+    hooks: [
+      'Gaji RM[harga] tapi masih boleh simpan? Ini caranya:',
+      'Kalau aku boleh ulang umur 20, aku akan mula labur [X] dulu.',
+      'Simpan RM[harga] sebulan, 10 tahun lagi jadi berapa? 👀',
+      '[N] app pelaburan yang aku guna & kenapa:',
+      'Duit dalam bank je? Korang sebenarnya rugi sebab inflasi.',
+      'Dividen [X] dah keluar. Ini yang korang perlu tahu:',
+      'Beza [X] vs [Y] untuk pelabur baru — mana satu?',
+      'Kesilapan duit yang aku buat masa mula kerja:',
+    ],
+  },
+  bantuan: {
+    label: '🏛️ Bantuan Kerajaan',
+    hooks: [
+      'Dah semak? [X] dah mula dibayar hari ni 💸',
+      'Ramai layak tapi tak mohon [X]. Ini syaratnya:',
+      'Tarikh bayaran [X] — simpan post ni 📌',
+      'Cara semak status [X] dalam 1 minit:',
+      'Belum terima [X]? Ini sebab yang paling biasa:',
+      'Bantuan yang korang mungkin terlepas tahun ni:',
+    ],
+  },
+  ewallet: {
+    label: '📲 E-Wallet',
+    hooks: [
+      'Kredit percuma [X] dah boleh claim! Caranya:',
+      'Cashback e-wallet minggu ni yang berbaloi:',
+      'Kod promo [X] — jangan lupa guna sebelum tamat 👀',
+      'Top up e-wallet tanpa caj? Ini caranya:',
+      'Hati-hati! Scam baru guna nama [X] 🚨',
+      '[N] tips guna e-wallet supaya duit tak bocor:',
+    ],
+  },
   affiliate: {
     label: '🛍️ Affiliate',
     hooks: [
@@ -164,26 +199,60 @@ export function daysUntil(dateStr, from = new Date()) {
 
 // ---------- Pelan mingguan lalai ----------
 export const DAY_NAMES = ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'];
+// ---------- Kategori (sandaran sebelum data/trends.json dimuat) ----------
+export const GROUPS = {
+  kewangan: { label: 'Kewangan', emoji: '💰', color: '#10b981' },
+  bantuan: { label: 'Bantuan Kerajaan', emoji: '🏛️', color: '#2563eb' },
+  ewallet: { label: 'E-Wallet', emoji: '📲', color: '#8b5cf6' },
+};
+export const CATEGORY_LABELS = {
+  pelaburan: { label: 'Pelaburan', emoji: '📈', group: 'kewangan' },
+  tipslabur: { label: 'Tips Labur', emoji: '🎯', group: 'kewangan' },
+  applabur: { label: 'App Pelaburan', emoji: '📱', group: 'kewangan' },
+  simpan: { label: 'Tips Simpan & Jimat', emoji: '🐷', group: 'kewangan' },
+  bank: { label: 'Bank & Bank Digital', emoji: '🏦', group: 'kewangan' },
+  duitonline: { label: 'Duit Tambahan', emoji: '💻', group: 'kewangan' },
+  tunai: { label: 'Bantuan Tunai', emoji: '💵', group: 'bantuan' },
+  subsidi: { label: 'Subsidi', emoji: '⛽', group: 'bantuan' },
+  pendidikan: { label: 'Pendidikan & Belia', emoji: '🎓', group: 'bantuan' },
+  program: { label: 'Belanjawan & Program', emoji: '📜', group: 'bantuan' },
+  promo: { label: 'Promo & Cashback', emoji: '🎁', group: 'ewallet' },
+  percuma: { label: 'Duit & Topup Percuma', emoji: '🆓', group: 'ewallet' },
+  tipsewallet: { label: 'Tips & Berita E-Wallet', emoji: '💳', group: 'ewallet' },
+  scam: { label: 'Amaran Penipuan', emoji: '🚨', group: 'ewallet' },
+};
+
+// ---------- Jenis slot pelan mingguan ----------
 export const SLOT_TYPES = {
-  affiliate: { label: '🛍️ Affiliate', studio: { mode: 'affiliate' } },
-  multi: { label: '🛍️ Senarai produk', studio: { mode: 'affiliate', multi: true } },
-  viral: { label: '🔥 Topik viral', studio: { mode: 'topic' } },
+  terkini: { label: '🔥 Topik terkini', studio: { mode: 'topic' }, pick: 'any' },
+  kewangan: { label: '💰 Kewangan', studio: { mode: 'topic' }, pick: 'group' },
+  pelaburan: { label: '📈 Pelaburan', studio: { mode: 'topic', category: 'pelaburan' }, pick: 'cat' },
+  tipslabur: { label: '🎯 Tips labur', studio: { mode: 'topic', category: 'tipslabur', format: 'thread' }, pick: 'cat' },
+  applabur: { label: '📱 App pelaburan', studio: { mode: 'topic', category: 'applabur' }, pick: 'cat' },
+  simpan: { label: '🐷 Tips simpan', studio: { mode: 'topic', category: 'simpan' }, pick: 'cat' },
+  bantuan: { label: '🏛️ Bantuan kerajaan', studio: { mode: 'topic' }, pick: 'group' },
+  ewallet: { label: '📲 E-Wallet', studio: { mode: 'topic' }, pick: 'group' },
+  promo: { label: '🎁 Promo e-wallet', studio: { mode: 'topic', category: 'promo' }, pick: 'cat' },
+  info: { label: '🖼️ Kad Info', studio: { mode: 'info' }, pick: 'any' },
   thread: { label: '🧵 Bebenang', studio: { mode: 'topic', format: 'thread' } },
-  finance: { label: '💰 Kewangan', studio: { mode: 'topic', category: 'finance' } },
-  food: { label: '🍜 Makanan', studio: { mode: 'topic', category: 'food' } },
-  bantuan: { label: '🏛️ Bantuan', studio: { mode: 'topic', category: 'bantuan' } },
-  ai: { label: '🤖 Info AI', studio: { mode: 'topic', category: 'ai' } },
+  affiliate: { label: '🛍️ Affiliate', studio: { mode: 'affiliate' } },
+  multi: { label: '🛒 Senarai produk', studio: { mode: 'affiliate', multi: true } },
   series: { label: '📚 Siri', studio: { mode: 'topic' } },
   bebas: { label: '✍️ Bebas', studio: { mode: 'topic' } },
+  // jenis lama (pelan yang disimpan sebelum ini)
+  finance: { label: '💰 Kewangan', studio: { mode: 'topic' }, pick: 'group', group: 'kewangan', legacy: true },
+  viral: { label: '🔥 Topik terkini', studio: { mode: 'topic' }, pick: 'any', legacy: true },
+  food: { label: '🔥 Topik terkini', studio: { mode: 'topic' }, pick: 'any', legacy: true },
+  ai: { label: '🔥 Topik terkini', studio: { mode: 'topic' }, pick: 'any', legacy: true },
 };
 export const DEFAULT_PLAN = {
-  0: [{ type: 'thread', time: '20:30' }],
-  1: [{ type: 'finance', time: '12:30' }, { type: 'affiliate', time: '21:00' }],
-  2: [{ type: 'viral', time: '13:00' }],
-  3: [{ type: 'affiliate', time: '21:00' }],
-  4: [{ type: 'ai', time: '12:30' }, { type: 'viral', time: '20:30' }],
+  0: [{ type: 'tipslabur', time: '20:30' }],
+  1: [{ type: 'simpan', time: '12:30' }, { type: 'info', time: '21:00' }],
+  2: [{ type: 'bantuan', time: '13:00' }],
+  3: [{ type: 'ewallet', time: '12:30' }, { type: 'affiliate', time: '21:00' }],
+  4: [{ type: 'pelaburan', time: '12:30' }, { type: 'terkini', time: '20:30' }],
   5: [{ type: 'bantuan', time: '11:00' }],
-  6: [{ type: 'multi', time: '10:00' }],
+  6: [{ type: 'applabur', time: '10:00' }],
 };
 
 // ---------- Label warna draf ----------

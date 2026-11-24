@@ -581,3 +581,19 @@ body.has-update .tabs [data-tab=lagi] span::after { content: ""; position: absol
 .ver-row { display: flex; justify-content: space-between; font-size: 14px; }
 .ver-row span { color: var(--muted); }
 .ver-row small { color: var(--muted); font-weight: 500; }
+
+/* =========================================================
+   Kad Info & kategori kumpulan
+   ========================================================= */
+#catChips .chip[style*="--lc"].on { background: var(--lc); border-color: var(--lc); color: #fff; }
+#catChips .chip small, #subChips .chip small { opacity: .7; font-weight: 700; margin-left: 2px; }
+.info-editor { display: grid; gap: 12px; }
+.info-editor .ic-wrap { padding: 12px; }
+.info-canvas { display: block; width: auto; max-width: 100%; max-height: 62vh; height: auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.3); margin: 0 auto; }
+.ie-edit summary { font-size: 14px; color: var(--text); padding: 8px 0; }
+.ie-points { display: grid; gap: 6px; }
+.ie-point { display: flex; gap: 6px; align-items: center; }
+.ie-point .ie-emoji { flex: 0 0 52px; text-align: center; padding: 10px 4px; }
+.ie-point .ie-text { flex: 1; min-width: 0; }
+.warn-banner { margin-top: 0; }
+#modeSeg button { padding-left: 6px; padding-right: 6px; }

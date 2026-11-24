@@ -1,7 +1,7 @@
 // Dijalankan oleh GitHub Actions setiap jam: ambil topik trending -> site/data/trends.json
 import fs from 'node:fs';
 import path from 'node:path';
-import { getTrending, CATEGORIES, markVelocity } from '../lib/trends.js';
+import { getTrending, CATEGORIES, GROUPS, markVelocity } from '../lib/trends.js';
 
 const out = process.argv[2] || 'site/data/trends.json';
 
@@ -20,7 +20,8 @@ async function previous() {
 
 const prev = await previous();
 const data = await getTrending(Object.keys(CATEGORIES), 15, { extras: true });
-data.labels = Object.fromEntries(Object.entries(CATEGORIES).map(([k, v]) => [k, { label: v.label, emoji: v.emoji }]));
+data.labels = Object.fromEntries(Object.entries(CATEGORIES).map(([k, v]) => [k, { label: v.label, emoji: v.emoji, group: v.group }]));
+data.groups = GROUPS;
 markVelocity(data.items || [], prev?.items || []);
 
 const total = (data.items || []).length;

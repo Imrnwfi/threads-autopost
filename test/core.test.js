@@ -25,22 +25,29 @@ before(async () => {
   trends = await import('../lib/trends.js');
 });
 
-test('guessCategory', () => {
-  assert.equal(trends.guessCategory('Bayaran STR dan bantuan Madani'), 'bantuan');
-  assert.equal(trends.guessCategory('Resepi nasi lemak viral'), 'food');
-  assert.equal(trends.guessCategory('OpenAI lancar model ChatGPT baru'), 'ai');
-  assert.equal(trends.guessCategory('Kod promo Shopee cashback'), 'voucher');
+test('guessCategory: kewangan / bantuan / e-wallet sahaja', () => {
+  assert.equal(trends.guessCategory('Bayaran STR fasa 4 dan bantuan Madani'), 'tunai');
+  assert.equal(trends.guessCategory('Dividen ASB 2026 diumumkan'), 'pelaburan');
+  assert.equal(trends.guessCategory('Review app StashAway vs Versa'), 'applabur');
+  assert.equal(trends.guessCategory('10 tips jimat duit gaji bulanan'), 'simpan');
+  assert.equal(trends.guessCategory('Kod promo TNG eWallet cashback RM5'), 'promo');
+  assert.equal(trends.guessCategory('Cara tuntut kredit percuma eMadani'), 'percuma');
+  assert.equal(trends.guessCategory('Amaran: scam pautan palsu curi akaun bank'), 'scam');
+  assert.equal(trends.guessCategory('BUDI95 harga RON95 baharu'), 'subsidi');
 });
 
-test('guessCategory guna sempadan perkataan', () => {
-  assert.equal(trends.guessCategory('Strategi industri automotif'), 'viral');
-  assert.equal(trends.guessCategory('Tool AI terbaru untuk pelajar'), 'ai');
+test('guessCategory buang topik luar skop & guna sempadan perkataan', () => {
+  assert.equal(trends.guessCategory('Resepi nasi lemak viral di Kuantan'), null);
+  assert.equal(trends.guessCategory('Pasukan bola sepak menang perlawanan'), null);
+  assert.equal(trends.guessCategory('Strategi industri automotif'), null);
+  assert.equal(trends.guessCategory('Cara semak status STR'), 'tunai');
 });
 
 test('getTrending gabung tajuk serupa & beri skor', async () => {
-  const { categories, errors } = await trends.getTrending(['bantuan'], 10);
+  const { categories, errors } = await trends.getTrending(['tunai'], 10);
   assert.deepEqual(errors, []);
-  const top = categories.bantuan[0];
+  const top = categories.tunai[0];
+  assert.equal(top.group, 'bantuan');
   assert.match(top.title, /STR/i);
   assert.ok(top.sources.length >= 2, 'sumber digabung: ' + top.sources);
   assert.ok(!/ - Sinar Harian$/.test(top.title), 'nama akhbar dibuang');
@@ -57,13 +64,14 @@ test('fetch-trends menulis fail JSON untuk laman', async () => {
   execFileSync(process.execPath, ['--import', mock, 'scripts/fetch-trends.mjs', out]);
   const data = JSON.parse(fs.readFileSync(out, 'utf8'));
   assert.ok(data.fetched_at);
-  assert.equal(Object.keys(data.categories).length, 6);
-  assert.equal(data.labels.bantuan.label, 'Bantuan Kerajaan');
+  assert.equal(Object.keys(data.categories).length, Object.keys(trends.CATEGORIES).length);
+  assert.equal(data.labels.tunai.group, 'bantuan');
+  assert.equal(data.groups.ewallet.label, 'E-Wallet');
 });
 
 test('matchesCategory buang tajuk tersasar', () => {
-  assert.equal(trends.matchesCategory('Dua maut dalam insiden letupan di Hanoi', 'food'), false);
-  assert.equal(trends.matchesCategory('Kedai nasi lemak viral di Kuantan', 'food'), true);
+  assert.equal(trends.matchesCategory('Dua maut dalam insiden letupan di Hanoi', 'promo'), false);
+  assert.equal(trends.matchesCategory('Kod promo GrabPay cashback hujung minggu', 'promo'), true);
 });
 
 test('ai.js: nameFromUrl & extractJson', async () => {

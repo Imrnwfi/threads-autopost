@@ -47,8 +47,13 @@ export const AFF_STYLES = {
 };
 
 const CAT_LABELS = {
-  finance: 'Kewangan', food: 'Makanan', voucher: 'Voucher & Promo', bantuan: 'Bantuan Kerajaan', viral: 'Info Viral', ai: 'Info AI',
+  pelaburan: 'Kewangan › Pelaburan', tipslabur: 'Kewangan › Tips Labur', applabur: 'Kewangan › App Pelaburan',
+  simpan: 'Kewangan › Tips Simpan & Jimat', bank: 'Kewangan › Bank', duitonline: 'Kewangan › Duit Tambahan',
+  tunai: 'Bantuan Kerajaan › Bantuan Tunai', subsidi: 'Bantuan Kerajaan › Subsidi', pendidikan: 'Bantuan Kerajaan › Pendidikan & Belia',
+  program: 'Bantuan Kerajaan › Belanjawan & Program', promo: 'E-Wallet › Promo & Cashback', percuma: 'E-Wallet › Duit & Topup Percuma',
+  tipsewallet: 'E-Wallet › Tips & Berita', scam: 'E-Wallet › Amaran Penipuan',
 };
+export const catLabel = (k) => CAT_LABELS[k] || k || 'umum';
 
 // ---------- Utiliti ----------
 export const len = (s = '') => [...s].length;
@@ -255,7 +260,7 @@ Nada: ${tone}`;
     system += `
 - Untuk bantuan kerajaan/kewangan: ajak semak di laman rasmi dan jangan beri nasihat pelaburan.
 - "comment": string kosong melainkan ada sebab kukuh untuk komen pertama.`;
-    user = `Kategori: ${CAT_LABELS[opts.category] || opts.category || 'umum'}
+    user = `Kategori: ${catLabel(opts.category)}
 ${opts.topic ? `Topik: ${opts.topic}` : ''}
 ${opts.snippet ? `Ringkasan sumber: ${opts.snippet}` : ''}
 ${opts.source ? `Sumber: ${opts.source}` : ''}
@@ -411,5 +416,63 @@ Pulangkan HANYA JSON: {"highlights":"3-4 ciri umum dipisah koma","audience":"sia
     highlights: String(data.highlights || ''),
     audience: String(data.audience || ''),
     note: data.found ? 'Maklumat dicari oleh AI — semak harga di Shopee sebelum post.' : 'Maklumat tidak lengkap. Semak & betulkan.',
+  };
+}
+
+/**
+ * Ringkaskan maklumat jadi Kad Info (infografik) untuk Story / Status.
+ * opts: { topic, snippet, source, category, web, lang, persona, fromPost }
+ * @returns {Promise<{title, highlight, highlight_label, points:[{emoji,text}], note, source, caption, verified}>}
+ */
+export async function generateInfo(settings, opts) {
+  if (!opts.topic?.trim()) throw new Error('Topik diperlukan.');
+  const canWeb = opts.web && settings.provider !== 'openai';
+  const system = `Kau pereka kandungan infografik untuk audiens Malaysia (kewangan, bantuan kerajaan, e-wallet).
+Tugas: ringkaskan maklumat jadi KAD INFO yang padat untuk dikongsi di Story / Status.
+Peraturan WAJIB:
+- Bahasa: ${LANGS[opts.lang]?.desc || LANGS.ms.desc}. Ayat pendek, mudah faham sekali pandang.
+- "title": tajuk menarik, MAKSIMUM 50 aksara.
+- "highlight": SATU angka/tarikh/jumlah paling penting (cth. "RM500", "15 Dis", "4.25%") maksimum 16 aksara, atau "" jika tiada fakta angka yang pasti.
+- "highlight_label": label ringkas untuk highlight (maks 30 aksara), cth. "Bayaran Fasa 4".
+- "points": 3 hingga 5 poin. Setiap poin {"emoji":"satu emoji","text":"maks 80 aksara"}. Poin praktikal: apa, siapa layak, bila, cara, tips.
+- "note": peringatan ringkas maks 70 aksara (cth. "Semak status di laman rasmi sebelum memohon").
+- "source": nama sumber (agensi/laman rasmi/akhbar), maks 60 aksara.
+- "caption": kapsyen untuk Threads/Instagram, maks 350 aksara, dengan ajakan (save/share/komen) dan 1-2 hashtag.
+- "verified": true jika fakta disahkan daripada sumber, false jika tidak pasti.
+- JANGAN reka angka, tarikh, kadar, syarat atau nama program. ${canWeb ? 'Gunakan carian web untuk SAHKAN dan lengkapkan fakta daripada sumber rasmi/berita terkini. Jika tidak dapat disahkan, tulis secara umum dan set verified=false.' : 'Guna HANYA maklumat yang diberi. Jika tidak cukup, tulis secara umum dan ajak semak laman rasmi.'}
+- Untuk pelaburan: tiada janji pulangan, tiada nasihat beli/jual.
+${opts.persona ? `- Persona akaun: ${opts.persona}` : ''}
+Pulangkan HANYA JSON:
+{"title":"","highlight":"","highlight_label":"","points":[{"emoji":"","text":""}],"note":"","source":"","caption":"","verified":true}`;
+  const user = `Kategori: ${catLabel(opts.category)}
+${opts.fromPost ? 'Kandungan post asal' : 'Topik'}: ${opts.topic}
+${opts.snippet ? `Ringkasan / fakta: ${opts.snippet}` : ''}
+${opts.source ? `Sumber: ${opts.source}` : ''}`;
+
+  let raw;
+  try {
+    raw = await callAI(settings, system, user, { json: !canWeb, web: canWeb, maxTokens: 4096, temperature: 0.5 });
+  } catch (e) {
+    const toolProblem = /web|tool|search|fetch|url/i.test(e.message);
+    if (!canWeb || !toolProblem) throw e;
+    raw = await callAI(settings, system, user, { json: true, maxTokens: 4096, temperature: 0.5 });
+  }
+  const d = extractJson(raw);
+  const cut = (s, n) => { const a = [...String(s || '').trim()]; return a.length > n ? `${a.slice(0, n - 1).join('')}…` : a.join(''); };
+  const points = (Array.isArray(d.points) ? d.points : [])
+    .map((p) => (typeof p === 'string' ? { emoji: '•', text: p } : p))
+    .map((p) => ({ emoji: cut(p.emoji || '•', 4), text: cut(p.text, 90) }))
+    .filter((p) => p.text)
+    .slice(0, 5);
+  if (!d.title || !points.length) throw new Error('AI tidak memulangkan kad info. Cuba lagi.');
+  return {
+    title: cut(d.title, 60),
+    highlight: cut(d.highlight, 18),
+    highlight_label: cut(d.highlight_label, 34),
+    points,
+    note: cut(d.note, 80),
+    source: cut(d.source || opts.source, 70),
+    caption: cut(d.caption, 450),
+    verified: d.verified !== false,
   };
 }

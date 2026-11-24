@@ -87,7 +87,7 @@ function renderCalendar() {
 $('#editPlanBtn').addEventListener('click', () => {
   const days = JSON.parse(JSON.stringify(planDays()));
   const order = [1, 2, 3, 4, 5, 6, 0];
-  const typeOpts = (sel) => Object.entries(SLOT_TYPES).map(([k, v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${esc(v.label)}</option>`).join('');
+  const typeOpts = (sel) => Object.entries(SLOT_TYPES).filter(([k, v]) => !v.legacy || k === sel).map(([k, v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${esc(v.label)}</option>`).join('');
   const seriesOpts = (sel) => state.series.map((s) => `<option value="${s.id}" ${s.id === sel ? 'selected' : ''}>${esc(s.name)}</option>`).join('');
   const panel = openSheet('✏️ Pelan mingguan', '<div class="plan-edit"></div><button class="btn primary block pe-save">💾 Simpan pelan</button><button class="btn block pe-reset" style="margin-top:8px">Set semula ke cadangan</button>', { wide: true });
   const draw = () => {
@@ -111,7 +111,7 @@ $('#editPlanBtn').addEventListener('click', () => {
   });
   panel.addEventListener('click', (e) => {
     const add = e.target.closest('[data-add]');
-    if (add) { (days[add.dataset.add] ||= []).push({ type: 'viral', time: '20:00' }); draw(); }
+    if (add) { (days[add.dataset.add] ||= []).push({ type: 'terkini', time: '20:00' }); draw(); }
     const del = e.target.closest('[data-del]');
     if (del) { const r = del.closest('.pe-slot'); days[r.dataset.wd].splice(r.dataset.j, 1); draw(); }
     if (e.target.closest('.pe-save')) {
@@ -246,14 +246,15 @@ $('#seriesList').addEventListener('click', (e) => {
 $('#addSeriesBtn').addEventListener('click', () => seriesSheet(null));
 
 function seriesSheet(s) {
-  const v = s || { name: '', emoji: '📌', desc: '', category: 'finance', format: 'single', tone: 'santai', nextNo: 1 };
+  const v = s || { name: '', emoji: '📌', desc: '', category: 'simpan', format: 'single', tone: 'santai', nextNo: 1 };
   const cats = A.getCats();
+  const grps = A.getGroups();
   const panel = openSheet(s ? '✏️ Edit siri' : '📚 Siri baharu', `
     <div class="form">
       <div class="row"><label style="flex:0 0 80px">Emoji <input data-f="emoji" maxlength="4" value="${esc(v.emoji)}" /></label><label>Nama siri <input data-f="name" value="${esc(v.name)}" placeholder="cth. Tips Jimat" /></label></div>
       <label>Penerangan / tema <textarea data-f="desc" rows="2" placeholder="cth. Satu tips jimat duit praktikal setiap episod untuk anak muda">${esc(v.desc)}</textarea></label>
       <div class="row">
-        <label>Kategori <select data-f="category">${Object.entries(cats).map(([k, c]) => `<option value="${k}" ${k === v.category ? 'selected' : ''}>${c.emoji} ${esc(c.label)}</option>`).join('')}</select></label>
+        <label>Kategori <select data-f="category">${Object.entries(grps).map(([gk, g]) => `<optgroup label="${g.emoji} ${esc(g.label)}">${Object.entries(cats).filter(([, c]) => c.group === gk).map(([k, c]) => `<option value="${k}" ${k === v.category ? 'selected' : ''}>${c.emoji} ${esc(c.label)}</option>`).join('')}</optgroup>`).join('')}</select></label>
         <label>Format <select data-f="format"><option value="single" ${v.format === 'single' ? 'selected' : ''}>Satu post</option><option value="thread" ${v.format === 'thread' ? 'selected' : ''}>Bebenang</option></select></label>
       </div>
       <label>Nombor episod seterusnya <input data-f="nextNo" type="number" min="1" value="${v.nextNo || 1}" /></label>
