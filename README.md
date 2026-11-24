@@ -11,6 +11,20 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
   <img src="docs/bebenang.png" width="260" alt="Pratonton bebenang" />
 </p>
 
+## Pembaca link Shopee
+
+Supaya app boleh **baca terus** nama, harga & penerangan produk daripada link Shopee (termasuk link pendek `s.shopee.com.my`), pasang pembaca link percuma di Cloudflare (±5 minit, sekali sahaja):
+
+1. Daftar / log masuk di [dash.cloudflare.com](https://dash.cloudflare.com) (percuma).
+2. **Workers & Pages → Create → Create Worker** → beri nama, cth. `shopee-reader` → **Deploy**.
+3. Tekan **Edit code**, padam semua kod contoh, tampal isi fail [`worker/shopee-reader.js`](worker/shopee-reader.js) → **Deploy**.
+4. Salin URL worker (cth. `https://shopee-reader.nama-anda.workers.dev`).
+5. Dalam app: **Tetapan → 🔗 Pembaca link Shopee** → tampal URL → **Simpan** → **Uji** dengan satu link produk.
+
+Selepas itu, dalam Studio → Affiliate: tampal link → tekan **Jana sekarang**. App baca produk dan terus tulis ayat (link masuk komen pertama).
+
+Tanpa pembaca link, app cuba minta AI baca link (Gemini *URL context* / Claude *web fetch*). Cara ini mungkin dihadkan pada kunci Gemini percuma; jika gagal, app teka nama daripada link dan minta anda lengkapkan.
+
 ## Ciri-ciri
 
 ### ✍️ Menulis

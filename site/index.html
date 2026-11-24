@@ -132,7 +132,7 @@
                 <button type="button" class="btn accent" id="autoFillBtn">✨ Isi automatik</button>
               </div>
             </label>
-            <p class="muted small" id="autoFillNote">Tekan <b>Isi automatik</b> — AI cari nama, harga & kelebihan produk.</p>
+            <p class="muted small" id="autoFillNote">Tampal link, kemudian terus tekan <b>Jana sekarang</b> — app baca produk & tulis ayat. Atau tekan <b>Isi automatik</b> untuk semak dulu.</p>
             <label>Nama produk <input id="pName" placeholder="cth. Blender mudah alih 600ml" /></label>
             <div class="row">
               <label>Harga <input id="pPrice" placeholder="cth. RM39.90" /></label>
@@ -319,6 +319,15 @@
         <button class="btn primary" type="submit">💾 Simpan</button>
         <p class="muted small">🔒 API key disimpan dalam browser ini sahaja dan dihantar terus ke penyedia AI.</p>
       </form>
+
+      <div class="card form" id="readerCard">
+        <h3>🔗 Pembaca link Shopee</h3>
+        <p class="muted small">Supaya app boleh <b>baca terus</b> nama, harga & penerangan produk daripada link Shopee (termasuk link pendek). Percuma melalui Cloudflare — <a href="https://github.com/Imrnwfi/threads-autopost#pembaca-link-shopee" target="_blank" rel="noopener">panduan 5 minit</a>.</p>
+        <label>URL Pembaca link <input id="sReader" placeholder="https://shopee-reader.nama-anda.workers.dev" autocomplete="off" inputmode="url" /></label>
+        <label>Link Shopee untuk uji <input id="sReaderTest" placeholder="https://s.shopee.com.my/..." inputmode="url" /></label>
+        <div class="row wrap"><button class="btn primary" id="saveReaderBtn">💾 Simpan</button><button class="btn" id="testReaderBtn">🧪 Uji</button></div>
+        <p class="muted small" id="readerStatus"></p>
+      </div>
 
       <div class="card form">
         <h3>✍️ Gaya tulisan saya</h3>

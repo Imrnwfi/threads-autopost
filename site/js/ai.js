@@ -96,6 +96,22 @@ export function markWebLimited(on = true) {
   try { if (on) localStorage.setItem(WEB_KEY, String(Date.now())); else localStorage.removeItem(WEB_KEY); } catch { /* abaikan */ }
 }
 
+const URL_KEY = 'tpg_urlLimited';
+export function urlLimited() {
+  try { return Date.now() - Number(localStorage.getItem(URL_KEY) || 0) < 12 * 3600000; } catch { return false; }
+}
+function markUrlLimited() { try { localStorage.setItem(URL_KEY, String(Date.now())); } catch { /* abaikan */ } }
+
+/** Baca link Shopee melalui Pembaca Link (Cloudflare Worker pengguna). */
+export async function readProductLink(readerUrl, link) {
+  const base = String(readerUrl || '').trim().replace(/\/+$/, '');
+  if (!base) throw new Error('Pembaca link belum ditetapkan.');
+  const res = await fetch(`${base}/?url=${encodeURIComponent(link)}`, { signal: AbortSignal.timeout(20000) });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(d.error || `HTTP ${res.status}`);
+  return d;
+}
+
 // ---------- Penyedia AI ----------
 async function readError(res, label) {
   const body = await res.json().catch(() => ({}));
@@ -125,7 +141,8 @@ export async function callAI(settings, system, user, { json = true, web = false,
       contents: [{ role: 'user', parts: [{ text: user }] }],
       generationConfig: { temperature: temp, maxOutputTokens: maxTokens },
     };
-    if (web) body.tools = [{ url_context: {} }, { google_search: {} }];
+    if (web === 'url') body.tools = [{ url_context: {} }];
+    else if (web) body.tools = [{ url_context: {} }, { google_search: {} }];
     else if (json) body.generationConfig.responseMimeType = 'application/json';
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
       method: 'POST',
@@ -149,10 +166,12 @@ export async function callAI(settings, system, user, { json = true, web = false,
     const body = { model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] };
     if (web) {
       headers['anthropic-beta'] = 'web-fetch-2025-09-10';
-      body.tools = [
-        { type: 'web_search_20250305', name: 'web_search', max_uses: 3 },
-        { type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 3 },
-      ];
+      body.tools = web === 'url'
+        ? [{ type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 2 }]
+        : [
+          { type: 'web_search_20250305', name: 'web_search', max_uses: 3 },
+          { type: 'web_fetch_20250910', name: 'web_fetch', max_uses: 3 },
+        ];
     }
     const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify(body) });
     if (!res.ok) throw await readError(res, 'Claude');
@@ -381,55 +400,91 @@ Pulangkan HANYA JSON: {"guide":"- poin 1\\n- poin 2\\n..."}`;
 }
 
 /**
- * Cari maklumat produk daripada link (guna carian/baca web jika penyedia menyokong).
- * @returns {Promise<{name, price, highlights, audience, found:boolean, note}>}
+ * Baca / cari maklumat produk daripada link.
+ * Tertib: 1) Pembaca link (Cloudflare Worker) → 2) AI baca link (Gemini URL context / Claude web fetch)
+ *         → 3) carian web (jika ada kuota) → 4) teka daripada link/nama.
+ * @returns {Promise<{name, price, highlights, audience, image, url, found:boolean, source, note}>}
  */
 export async function researchProduct(settings, link, hint = '') {
-  const guess = nameFromUrl(link) || hint;
-  const system = `Kau pembantu penyelidik produk e-dagang Malaysia. Tugas: kenal pasti produk daripada link Shopee yang diberi.
-Baca halaman link tersebut dan/atau cari di web (nama produk, harga semasa dalam RM, ciri utama).
-JANGAN reka. Jika maklumat tidak dijumpai dengan yakin, biarkan medan itu kosong.
+  let guess = nameFromUrl(link) || hint;
+  const empty = { name: '', price: '', highlights: '', audience: '', image: '', url: link };
+
+  // Ringkaskan teks halaman produk jadi medan borang (tanpa web)
+  const summarise = async (page) => {
+    const d = extractJson(await callAI(settings,
+      `Kau penulis katalog e-dagang Malaysia. Berdasarkan maklumat halaman produk Shopee di bawah, keluarkan medan ringkas dalam Bahasa Melayu.
+JANGAN reka spesifikasi yang tiada. Pulangkan HANYA JSON:
+{"name":"nama produk ringkas & jelas (maks 80 aksara, buang kata kunci spam/emoji)","highlights":"3-5 ciri/kelebihan utama dipisah koma","audience":"siapa sesuai guna (ringkas)"}`,
+      `Nama: ${page.name}\n${page.price ? `Harga: ${page.price}\n` : ''}Penerangan: ${page.description || '(tiada)'}`,
+      { json: true, maxTokens: 1500, temperature: 0.3 }));
+    return d;
+  };
+
+  // 1) Pembaca link
+  let readerNote = '';
+  if (settings.readerUrl) {
+    try {
+      const page = await readProductLink(settings.readerUrl, link);
+      if (page.url && !guess) guess = nameFromUrl(page.url);
+      if (page.ok && page.name) {
+        let d = {};
+        try { d = await summarise(page); } catch (e) { if (e.code === 'NO_KEY') throw e; }
+        return {
+          ...empty, found: true, source: 'reader', url: page.url || link, image: page.image || '',
+          name: String(d.name || page.name).slice(0, 120), price: page.price || '',
+          highlights: d.highlights || page.description.slice(0, 200), audience: d.audience || '',
+          note: 'Dibaca terus dari Shopee ✅ Semak harga sebelum post.',
+        };
+      }
+      readerNote = page.error || 'Shopee tidak memulangkan maklumat.';
+    } catch (e) {
+      if (e.code === 'NO_KEY') throw e;
+      readerNote = `Pembaca link gagal (${e.message}).`;
+    }
+  }
+
+  // 2) AI baca link terus (URL context / web fetch)
+  const system = `Kau pembantu penyelidik produk e-dagang Malaysia. Baca halaman link Shopee yang diberi dan kenal pasti produk.
+JANGAN reka. Jika maklumat tidak dijumpai dengan yakin, biarkan medan kosong dan set found=false.
 Pulangkan HANYA JSON:
 {"found": true/false, "name": "nama produk ringkas (maks 80 aksara)", "price": "cth. RM39.90 atau kosong", "highlights": "3-5 ciri/kelebihan utama dipisah koma", "audience": "siapa sesuai guna (ringkas)"}`;
   const user = `Link: ${link}${guess ? `\nPetunjuk nama: ${guess}` : ''}`;
-
   let data = null;
-  let note = '';
-  try {
-    const web = settings.provider !== 'openai' && !webLimited();
-    if (!web) throw Object.assign(new Error('web off'), { skipWeb: true });
-    data = extractJson(await callAI(settings, system, user, { json: false, web: true, maxTokens: 4096 }));
-  } catch (e) {
-    const toolProblem = /web|tool|search|fetch|url|ground/i.test(e.message);
-    if (e.status === 429 && settings.provider === 'gemini') markWebLimited();
-    else if (e.code === 'NO_KEY' || e.status === 401 || (e.status === 403 && !toolProblem)) throw e;
-    note = e.skipWeb || e.status === 429
-      ? 'Carian web tidak tersedia untuk API key ini — maklumat diteka daripada link sahaja.'
-      : 'Carian web tidak tersedia — maklumat diteka daripada link sahaja.';
+  let note = readerNote;
+  const tryAI = async (mode) => {
+    try {
+      const d = extractJson(await callAI(settings, system, user, { json: false, web: mode, maxTokens: 4096, temperature: 0.3 }));
+      if (d.found && d.name) data = d;
+    } catch (e) {
+      if (e.code === 'NO_KEY' || e.status === 401) throw e;
+      if (e.status === 429 && settings.provider === 'gemini') (mode === 'url' ? markUrlLimited : markWebLimited)();
+    }
+  };
+  if (settings.provider !== 'openai' && !urlLimited()) await tryAI('url');
+  if (!data && settings.provider !== 'openai' && !webLimited()) await tryAI(true);
+  if (data) {
+    return {
+      ...empty, found: true, source: 'ai', name: String(data.name).slice(0, 120), price: String(data.price || ''),
+      highlights: String(data.highlights || ''), audience: String(data.audience || ''),
+      note: 'Maklumat dibaca oleh AI ✅ Semak harga di Shopee sebelum post.',
+    };
   }
 
-  if (!data || (!data.found && !data.name)) {
-    if (!guess) {
-      return { found: false, name: '', price: '', highlights: '', audience: '', note: note || 'Produk tidak dapat dikenal pasti. Sila taip nama produk.' };
-    }
-    try {
-      const d2 = extractJson(await callAI(settings,
-        `Berdasarkan nama produk sahaja, cadangkan ciri/kegunaan UMUM yang biasa bagi produk jenis ini (tanpa angka spesifik, tanpa harga).
-Pulangkan HANYA JSON: {"highlights":"3-4 ciri umum dipisah koma","audience":"siapa sesuai guna"}`,
-        `Nama produk: ${guess}`, { json: true, maxTokens: 1024 }));
-      return { found: false, name: guess, price: '', highlights: d2.highlights || '', audience: d2.audience || '', note: note || 'Maklumat dianggar daripada nama produk. Semak & betulkan jika perlu.' };
-    } catch {
-      return { found: false, name: guess, price: '', highlights: '', audience: '', note: note || 'Nama diteka daripada link. Sila lengkapkan maklumat lain.' };
-    }
+  // 3) Teka daripada nama
+  const tip = settings.readerUrl ? '' : ' Pasang "Pembaca link Shopee" di Tetapan supaya app boleh baca link terus.';
+  if (!guess) {
+    return { ...empty, found: false, source: 'none', note: `${note ? `${note} ` : ''}Tak dapat baca link ini. Taip nama produk.${tip}` };
   }
-  return {
-    found: !!data.found,
-    name: String(data.name || guess || '').slice(0, 120),
-    price: String(data.price || ''),
-    highlights: String(data.highlights || ''),
-    audience: String(data.audience || ''),
-    note: data.found ? 'Maklumat dicari oleh AI — semak harga di Shopee sebelum post.' : 'Maklumat tidak lengkap. Semak & betulkan.',
-  };
+  try {
+    const d2 = extractJson(await callAI(settings,
+      `Berdasarkan nama produk sahaja, cadangkan ciri/kegunaan UMUM yang biasa bagi produk jenis ini (tanpa angka spesifik, tanpa harga).
+Pulangkan HANYA JSON: {"highlights":"3-4 ciri umum dipisah koma","audience":"siapa sesuai guna"}`,
+      `Nama produk: ${guess}`, { json: true, maxTokens: 1024 }));
+    return { ...empty, found: false, source: 'guess', name: guess, highlights: d2.highlights || '', audience: d2.audience || '', note: `Cadangan umum berdasarkan nama produk — semak & betulkan.${tip}` };
+  } catch (e) {
+    if (e.code === 'NO_KEY') throw e;
+    return { ...empty, found: false, source: 'guess', name: guess, note: `Nama diteka daripada link. Lengkapkan maklumat lain.${tip}` };
+  }
 }
 
 /**

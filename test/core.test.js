@@ -178,3 +178,22 @@ test('ai.js: parseShareText asingkan link, nama & harga', async () => {
   assert.equal(m.price, 'RM59.00');
   assert.deepEqual(ai.parseShareText('https://s.shopee.com.my/AbC12'), { link: 'https://s.shopee.com.my/AbC12', name: '', price: '' });
 });
+
+test('worker pembaca link: parse og & sekat host lain', async () => {
+  const store = new Map();
+  globalThis.caches = { default: { match: async (k) => store.get(k.url), put: async (k, r) => store.set(k.url, r) } };
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    const r = new Response('<meta property="og:title" content="Kipas Mini | Shopee Malaysia"><meta property="og:description" content="3 kelajuan"><meta property="product:price:amount" content="15.90">');
+    Object.defineProperty(r, 'url', { value: 'https://shopee.com.my/Kipas-Mini-i.1.2' });
+    return r;
+  };
+  try {
+    const { default: w } = await import('../worker/shopee-reader.js');
+    const ctx = { waitUntil: () => {} };
+    const ok = await (await w.fetch(new Request('https://x.test/?url=' + encodeURIComponent('https://s.shopee.com.my/a')), {}, ctx)).json();
+    assert.equal(ok.ok, true); assert.equal(ok.name, 'Kipas Mini'); assert.equal(ok.price, 'RM15.90');
+    const bad = await w.fetch(new Request('https://x.test/?url=' + encodeURIComponent('https://evil.com/')), {}, ctx);
+    assert.equal(bad.status, 400);
+  } finally { globalThis.fetch = realFetch; }
+});

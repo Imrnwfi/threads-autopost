@@ -373,6 +373,7 @@ function renderSettings() {
   $('#sModel').value = s.model; $('#sBaseUrl').value = s.baseUrl; $('#sPersona').value = s.persona;
   $('#styleSamples').value = s.styleSamples || ''; $('#styleGuide').value = s.styleGuide || ''; $('#sUseStyle').checked = !!s.useStyle;
   $('#sClientId').value = s.googleClientId || '';
+  $('#sReader').value = s.readerUrl || '';
   syncProviderUI();
   const fs = String(get('fontScale', 1));
   $$('#fontSeg button').forEach((b) => b.classList.toggle('active', b.dataset.v === fs));
@@ -390,6 +391,21 @@ function syncProviderUI() {
 }
 function initSettings() {
   $('#sProvider').addEventListener('change', syncProviderUI);
+  const saveReader = () => {
+    const v = $('#sReader').value.trim().replace(/\/+$/, '');
+    if (v && !/^https:\/\/\S+$/i.test(v)) throw new Error('URL mesti bermula dengan https://');
+    state.settings.readerUrl = v; touch(state.settings); save('settings');
+  };
+  $('#saveReaderBtn').addEventListener('click', () => { try { saveReader(); toast('💾 Pembaca link disimpan'); } catch (e) { toast(e.message, true); } });
+  $('#testReaderBtn').addEventListener('click', (e) => busy(e.currentTarget, async () => {
+    saveReader();
+    const link = $('#sReaderTest').value.trim() || 'https://shopee.com.my/';
+    const { readProductLink } = await import('./ai.js');
+    const r = await readProductLink(S().readerUrl, link);
+    $('#readerStatus').innerHTML = r.ok
+      ? `✅ Berjaya: <b>${esc(r.name)}</b>${r.price ? ` · ${esc(r.price)}` : ''}`
+      : r.service ? '✅ Pembaca link aktif. Masukkan link produk untuk uji.' : `⚠️ ${esc(r.error || 'Tiada maklumat')}`;
+  }, 'Menguji…'));
   $('#fontSeg').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;

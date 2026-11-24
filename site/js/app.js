@@ -577,12 +577,14 @@ async function autoFill(btn, link, hint, apply, noteEl, onEmpty) {
     }
   }, 'Mencari…');
 }
-$('#autoFillBtn').addEventListener('click', (e) => autoFill(e.currentTarget, $('#pLink').value.trim(), $('#pName').value.trim(), (info) => {
+function applyProductInfo(info) {
+  if (info.url && /^https?:/.test(info.url) && info.source === 'reader') { /* kekalkan link asal (link affiliate) */ }
   if (info.name) $('#pName').value = info.name;
   if (info.price) $('#pPrice').value = info.price;
   if (info.highlights) $('#pHighlights').value = info.highlights;
   if (info.audience) $('#pAudience').value = info.audience;
-}, $('#autoFillNote'), () => { $('#pName').focus(); $('#pName').scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
+}
+$('#autoFillBtn').addEventListener('click', (e) => autoFill(e.currentTarget, $('#pLink').value.trim(), $('#pName').value.trim(), applyProductInfo, $('#autoFillNote'), () => { $('#pName').focus(); $('#pName').scrollIntoView({ behavior: 'smooth', block: 'center' }); }));
 
 export function upsertProduct(p) {
   if (!p.link) return null;
@@ -678,8 +680,22 @@ $('#genForm').addEventListener('submit', (e) => {
         if (list.some((p) => !/^https?:\/\//i.test(p.link))) throw new Error('Setiap produk perlu link yang sah (https://).');
         opts.products = list; opts.topic = $('#mTheme').value.trim();
       } else {
+        smartLink();
         opts.product = readProduct();
         if (opts.product.link && !/^https?:\/\//i.test(opts.product.link)) throw new Error('Link mesti bermula dengan https://');
+        // Satu langkah: ada link tapi belum ada nama → baca produk dulu
+        if (opts.product.link && (!opts.product.name || (!opts.product.highlights && S().readerUrl))) {
+          $('#genBtn').innerHTML = '<span class="spin">⏳</span> Membaca produk…';
+          const info = await researchProduct(S(), opts.product.link, opts.product.name);
+          applyProductInfo(info);
+          $('#autoFillNote').textContent = `${info.found ? '✅' : '⚠️'} ${info.note}`;
+          opts.product = readProduct();
+          if (!opts.product.name) {
+            $('#pName').focus();
+            throw new Error('Tak dapat baca produk daripada link ini — taip nama produk dulu.');
+          }
+          $('#genBtn').innerHTML = '<span class="spin">⏳</span> AI sedang menulis…';
+        }
       }
     } else {
       Object.assign(opts, { topic: $('#gTopic').value.trim(), snippet: $('#gSnippet').value.trim(), category: $('#gCategory').value, source: $('#gSource').value });
@@ -1361,8 +1377,8 @@ function handleShare() {
   }
   applyPreset({ mode: 'affiliate', multi: false, product: { link, name: nameFromUrl(link) || hint || '', price: parsed.price || '' } });
   openTab('studio');
-  if (S().apiKey) $('#autoFillBtn').click();
-  else if (hint) $('#pName').value = hint;
+  // Terus baca produk & tulis ayat
+  if (S().apiKey) setTimeout(() => $('#genForm').requestSubmit(), 300);
   return true;
 }
 
