@@ -409,17 +409,6 @@ export async function researchProduct(settings, link, hint = '') {
   let guess = nameFromUrl(link) || hint;
   const empty = { name: '', price: '', highlights: '', audience: '', image: '', url: link };
 
-  // Ringkaskan teks halaman produk jadi medan borang (tanpa web)
-  const summarise = async (page) => {
-    const d = extractJson(await callAI(settings,
-      `Kau penulis katalog e-dagang Malaysia. Berdasarkan maklumat halaman produk Shopee di bawah, keluarkan medan ringkas dalam Bahasa Melayu.
-JANGAN reka spesifikasi yang tiada. Pulangkan HANYA JSON:
-{"name":"nama produk ringkas & jelas (maks 80 aksara, buang kata kunci spam/emoji)","highlights":"3-5 ciri/kelebihan utama dipisah koma","audience":"siapa sesuai guna (ringkas)"}`,
-      `Nama: ${page.name}\n${page.price ? `Harga: ${page.price}\n` : ''}Penerangan: ${page.description || '(tiada)'}`,
-      { json: true, maxTokens: 1500, temperature: 0.3 }));
-    return d;
-  };
-
   // 1) Pembaca link
   let readerNote = '';
   if (settings.readerUrl) {
@@ -427,12 +416,14 @@ JANGAN reka spesifikasi yang tiada. Pulangkan HANYA JSON:
       const page = await readProductLink(settings.readerUrl, link);
       if (page.url && !guess) guess = nameFromUrl(page.url);
       if (page.ok && page.name) {
-        let d = {};
-        try { d = await summarise(page); } catch (e) { if (e.code === 'NO_KEY') throw e; }
+        // Jimat kuota: tiada panggilan AI tambahan — penerangan terus digunakan semasa menjana ayat
+        const d = {};
+        const cleanName = String(page.name).replace(/[｜|].*$/, '').replace(/\s+/g, ' ').trim();
+        const desc = String(page.description || '').replace(/\s+/g, ' ').trim();
         return {
           ...empty, found: true, source: 'reader', url: page.url || link, image: page.image || '',
-          name: String(d.name || page.name).slice(0, 120), price: page.price || '',
-          highlights: d.highlights || page.description.slice(0, 200), audience: d.audience || '',
+          name: (cleanName || page.name).slice(0, 120), price: page.price || '',
+          highlights: desc.slice(0, 400), audience: d.audience || '',
           note: 'Dibaca terus dari Shopee ✅ Semak harga sebelum post.',
         };
       }
