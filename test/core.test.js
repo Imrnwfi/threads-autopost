@@ -60,3 +60,8 @@ test('fetch-trends menulis fail JSON untuk laman', async () => {
   assert.equal(Object.keys(data.categories).length, 6);
   assert.equal(data.labels.bantuan.label, 'Bantuan Kerajaan');
 });
+
+test('matchesCategory buang tajuk tersasar', () => {
+  assert.equal(trends.matchesCategory('Dua maut dalam insiden letupan di Hanoi', 'food'), false);
+  assert.equal(trends.matchesCategory('Kedai nasi lemak viral di Kuantan', 'food'), true);
+});
