@@ -30,7 +30,7 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
 - **Kongsi terus dari app Shopee** ke app ini (Android, selepas dipasang).
 
 ### 🔥 Topik viral
-- Google Trends, Google News (6 kategori + berita utama), Reddit (jika tidak disekat), YouTube Trending & forum Lowyat (pilihan) — dikemas kini **setiap jam** oleh GitHub Actions.
+- Google Trends, Google News (6 kategori + berita utama), YouTube Trending, forum Lowyat & Reddit (pilihan) — dikemas kini **setiap jam** oleh GitHub Actions.
 - **🚀 Meletup** — topik baharu yang naik mendadak dalam 1–3 jam.
 - **Kategori sendiri** dengan kata kunci anda (cth. Kereta, Parenting).
 
@@ -79,6 +79,10 @@ Data disimpan dalam folder tersembunyi (appDataFolder) Google Drive anda sendiri
 ## Forum Lowyat (pilihan)
 
 Tetapkan URL suapan RSS forum Lowyat di repo GitHub → **Settings → Secrets and variables → Actions → Variables → New repository variable** → nama `LOWYAT_RSS`.
+
+## Reddit (pilihan)
+
+Reddit menyekat kebanyakan pelayan GitHub Actions, jadi ia dimatikan secara default. Untuk cuba: tambah repository variable `ENABLE_REDDIT` = `1`.
 
 ## Cara ia berfungsi
 
