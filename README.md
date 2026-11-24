@@ -30,7 +30,7 @@ App ini **tidak post ke Threads**. Anda semak draf, tekan **Buka di Threads** (T
 - **Kongsi terus dari app Shopee** ke app ini (Android, selepas dipasang).
 
 ### 🔥 Topik viral
-- Google Trends, Google News (6 kategori + berita utama), Reddit, forum Lowyat & YouTube Trending (pilihan) — dikemas kini **setiap jam** oleh GitHub Actions.
+- Google Trends, Google News (6 kategori + berita utama), Reddit (jika tidak disekat), YouTube Trending & forum Lowyat (pilihan) — dikemas kini **setiap jam** oleh GitHub Actions.
 - **🚀 Meletup** — topik baharu yang naik mendadak dalam 1–3 jam.
 - **Kategori sendiri** dengan kata kunci anda (cth. Kereta, Parenting).
 
@@ -75,6 +75,10 @@ Data disimpan dalam folder tersembunyi (appDataFolder) Google Drive anda sendiri
 1. Google Cloud Console → aktifkan **YouTube Data API v3** → **Credentials → Create API key**.
 2. Repo GitHub → **Settings → Secrets and variables → Actions → New repository secret** → nama `YOUTUBE_API_KEY`.
 3. **Actions** → jalankan workflow sekali.
+
+## Forum Lowyat (pilihan)
+
+Tetapkan URL suapan RSS forum Lowyat di repo GitHub → **Settings → Secrets and variables → Actions → Variables → New repository variable** → nama `LOWYAT_RSS`.
 
 ## Cara ia berfungsi
 

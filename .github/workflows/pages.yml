@@ -30,6 +30,7 @@ jobs:
         run: node scripts/fetch-trends.mjs site/data/trends.json
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          LOWYAT_RSS: ${{ vars.LOWYAT_RSS }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
