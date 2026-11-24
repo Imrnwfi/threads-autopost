@@ -1,6 +1,6 @@
 // Service worker: app boleh dibuka luar talian & cepat dimuatkan.
 // Strategi: network-first untuk fail app & data (sentiasa versi terkini), fallback ke cache.
-const CACHE = 'tpg-v4';
+const CACHE = 'tpg-v5';
 const SHELL = [
   './', './index.html', './style.css', './manifest.webmanifest',
   './js/app.js', './js/pages.js', './js/ai.js', './js/store.js', './js/util.js', './js/data.js', './js/imagecard.js', './js/sync.js', './js/icons.js',

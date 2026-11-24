@@ -548,3 +548,21 @@ body.no-scroll { overflow: hidden; }
 .confetti i { position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; animation: fall 1.6s cubic-bezier(.2,.6,.4,1) forwards; }
 @keyframes fall { to { transform: translate(var(--dx), 105vh) rotate(var(--r)); opacity: .9; } }
 @media (prefers-reduced-motion: reduce) { .st-fire.lit { animation: none; } }
+
+/* =========================================================
+   Pembetulan limpahan mendatar (elak skrin "zoom out")
+   ========================================================= */
+.form { grid-template-columns: minmax(0, 1fr); }
+.form > *, .card > *, .sheet-body > * { min-width: 0; }
+main { overflow-x: clip; }
+.home-grid, .hub-grid, .tactions, .reco-grid, .label-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.stats, .prod-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.tactions .btn { min-width: 0; white-space: normal; text-align: center; }
+.row > * { min-width: 0; }
+input, select, textarea { max-width: 100%; }
+.carousel > .tcard { min-width: 0; max-width: calc(100% - 8px); }
+.tcard, .dcard { min-width: 0; }
+.tpost { grid-template-columns: 38px minmax(0, 1fr); }
+.pp-post { grid-template-columns: 36px minmax(0, 1fr); }
+.thread-tip, .tcomment textarea { overflow-wrap: anywhere; }
+.tactions .btn.primary { white-space: nowrap; }
