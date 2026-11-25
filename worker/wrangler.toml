@@ -4,3 +4,8 @@ name = "threads-autopost"
 main = "shopee-reader.js"
 compatibility_date = "2026-11-01"
 workers_dev = true
+keep_vars = true
+
+# Kemas kini berita setiap 30 minit (perlu secret GH_TOKEN)
+[triggers]
+crons = ["*/30 * * * *"]

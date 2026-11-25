@@ -13,6 +13,36 @@ const UAS = [
   'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Mobile Safari/537.36',
 ];
 const CACHE_SECONDS = 6 * 3600;
+const REPO = 'Imrnwfi/threads-autopost';
+const WORKFLOW = 'pages.yml';
+
+// ---------- Kemas kini berita: cetus GitHub Actions (perlu secret GH_TOKEN) ----------
+async function gh(env, path, init = {}) {
+  return fetch(`https://api.github.com/repos/${REPO}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${env.GH_TOKEN}`,
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'threads-autopost-worker',
+      ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+  });
+}
+/** Cetus workflow jika run terakhir lebih lama daripada `minMinutes`. */
+async function triggerUpdate(env, minMinutes) {
+  if (!env.GH_TOKEN) return { ok: false, error: 'GH_TOKEN belum ditetapkan di Cloudflare' };
+  const last = await gh(env, `/actions/workflows/${WORKFLOW}/runs?per_page=1`);
+  if (!last.ok) return { ok: false, error: `GitHub ${last.status} — semak token` };
+  const run = (await last.json()).workflow_runs?.[0];
+  const ageMin = run ? (Date.now() - Date.parse(run.created_at)) / 60000 : Infinity;
+  if (run && (run.status !== 'completed' || ageMin < minMinutes)) {
+    return { ok: true, queued: false, running: run.status !== 'completed', last: run.created_at, ageMin: Math.round(ageMin) };
+  }
+  const res = await gh(env, `/actions/workflows/${WORKFLOW}/dispatches`, { method: 'POST', body: JSON.stringify({ ref: 'main' }) });
+  if (!res.ok) return { ok: false, error: `GitHub ${res.status} — token perlu kebenaran Actions: Read and write` };
+  return { ok: true, queued: true };
+}
 
 function cors(req) {
   const origin = req.headers.get('Origin') || '';
@@ -78,10 +108,17 @@ function parse(html, finalUrl) {
 }
 
 export default {
+  // Cron Cloudflare (lihat wrangler.toml) — kemas kini berita setiap 30 minit
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(triggerUpdate(env, 25));
+  },
+
   async fetch(req, env, ctx) {
     if (req.method === 'OPTIONS') return new Response(null, { headers: cors(req) });
+    const path = new URL(req.url).pathname;
+    if (path === '/refresh') return json(req, await triggerUpdate(env, 10));
     const raw = new URL(req.url).searchParams.get('url');
-    if (!raw) return json(req, { ok: true, service: 'shopee-reader', usage: '/?url=https://s.shopee.com.my/xxxx' });
+    if (!raw) return json(req, { ok: true, service: 'shopee-reader', usage: '/?url=https://s.shopee.com.my/xxxx', news: Boolean(env.GH_TOKEN) });
     let target;
     try { target = new URL(raw); } catch { return json(req, { ok: false, error: 'URL tidak sah' }, 400); }
     if (!ALLOWED_HOSTS.test(target.hostname)) return json(req, { ok: false, error: 'Hanya link Shopee Malaysia dibenarkan' }, 400);

@@ -37,6 +37,14 @@ Selepas itu, dalam Studio → Affiliate: tampal link → tekan **Jana sekarang**
 
 Tanpa pembaca link, app cuba minta AI baca link (Gemini *URL context* / Claude *web fetch*). Cara ini mungkin dihadkan pada kunci Gemini percuma; jika gagal, app teka nama daripada link dan minta anda lengkapkan.
 
+### Berita sentiasa terkini (pilihan)
+
+Jadual GitHub Actions selalu lewat atau terlepas. Pembaca link boleh cetus kemas kini berita setiap 30 minit, dan bila anda tekan ↻ di halaman Trending:
+
+1. GitHub → **Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
+2. Repository access: **Only select repositories → threads-autopost**. Permissions → **Actions: Read and write**. Generate, salin token.
+3. Cloudflare → worker → **Settings → Variables and Secrets → Add** → Type **Secret**, nama `GH_TOKEN`, tampal token → **Deploy**.
+
 ## Ciri-ciri
 
 ### ✍️ Menulis

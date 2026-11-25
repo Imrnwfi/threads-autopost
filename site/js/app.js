@@ -226,6 +226,7 @@ function openCustomCat(id) {
   });
 }
 
+let autoNewsDone = false;
 async function loadTrending(force = false) {
   $('#trendList').innerHTML = '<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>';
   try {
@@ -238,6 +239,8 @@ async function loadTrending(force = false) {
     renderTrendChips();
     renderTrending();
     if (!$('#page-utama').classList.contains('hidden')) renderHome();
+    const stale = trendData.fetched_at && Date.now() - Date.parse(trendData.fetched_at) > 45 * 60000;
+    if (stale && !autoNewsDone && S().readerUrl) { autoNewsDone = true; refreshNews(); }
   } catch (e) {
     $('#trendList').innerHTML = `<div class="empty"><span class="big">📡</span>Data trending belum tersedia (${esc(e.message)}).<br>Ia dikemas kini setiap jam.</div>`;
     $('#homeTrends').innerHTML = '';
@@ -284,7 +287,33 @@ function renderTrending() {
       </div>
     </div>`).join('');
 }
-$('#refreshTrending').addEventListener('click', () => loadTrending(true));
+$('#refreshTrending').addEventListener('click', () => refreshNews());
+let newsPoll = null;
+async function refreshNews() {
+  const before = trendData?.fetched_at;
+  await loadTrending(true);
+  const reader = S().readerUrl;
+  const ageMin = trendData?.fetched_at ? (Date.now() - Date.parse(trendData.fetched_at)) / 60000 : Infinity;
+  if (!reader || ageMin < 15) return;
+  try {
+    const r = await (await fetch(`${reader.replace(/\/+$/, '')}/refresh`, { signal: AbortSignal.timeout(15000) })).json();
+    if (!r.ok) { toast(`⚠️ Tak dapat kemas kini berita: ${r.error}`, true); return; }
+    if (!r.queued && !r.running) return;
+    toast('🔄 Sedang ambil berita terkini… (±1–2 minit)');
+    clearInterval(newsPoll);
+    let tries = 0;
+    newsPoll = setInterval(async () => {
+      tries++;
+      try {
+        const d = await (await fetch(`data/trends.json?t=${Date.now()}`, { cache: 'no-store' })).json();
+        if (d.fetched_at && d.fetched_at !== (before || trendData?.fetched_at)) {
+          clearInterval(newsPoll); await loadTrending(true); toast('✅ Berita dikemas kini');
+        }
+      } catch { /* cuba lagi */ }
+      if (tries > 12) clearInterval(newsPoll);
+    }, 20000);
+  } catch (e) { toast(`⚠️ Pembaca link tak dapat dihubungi (${e.message})`, true); }
+}
 $('#trendList').addEventListener('click', (e) => {
   const b = e.target.closest('[data-gen]');
   if (b) useTrend(trendView[Number(b.dataset.gen)]);
