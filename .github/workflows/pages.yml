@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '17 * * * *'   # setiap jam (minit ke-17)
+    - cron: '7,22,37,52 * * * *'   # setiap 15 minit (GitHub selalu langkau sebahagian)
   workflow_dispatch:
 
 permissions:
